@@ -36,8 +36,18 @@ class spectroscopyMeas:
 		self.counter = 1
 		self.markers[self.date] = []
 
-	def mark(self):
-		self.markers[self.date].append(self.get_id())
+	def prepare_meas(self):
+		self.vna.rf_on()
+
+	def end_meas(self):
+		self.vna.rf_off()
+		self.source.off()
+
+	def mark(self, id=None):
+		if id:
+			self.self.markers[self.date].append(id)
+		else:
+			self.markers[self.date].append(self.get_id())
 
 	def get_markers(self):
 		return self.markers[self.date]
@@ -104,19 +114,19 @@ class singleToneFreqSweep(spectroscopyMeas):
 		self.path = self.path + '\\' + self.name
 		util.check_dir(self.path)
 
-
 	
 	def meas(self, vna_settings=None, source_settings=None, plot=True, save=True):
 		channel = self.vna.channels.S21
 		self.write_vna_settings(vna_settings)
 		self.write_source_settings(source_settings)
-		self.vna.rf_on()
-		
 
-		self.write_path()
-		util.check_dir(str(self.counter))
-		self.save_vna_settings()
-		self.save_source_settings()
+		self.prepare_meas()
+		
+		if save:
+			self.write_path()
+			util.check_dir(str(self.counter))
+			self.save_vna_settings()
+			self.save_source_settings()
 
 		## Start Measurement
 		amp, phase = channel.trace_mag_phase()
@@ -137,11 +147,15 @@ class singleToneFreqSweep(spectroscopyMeas):
 
 		if plot:
 			util.tracePlot(mag, freqs, save)
-		np.savetxt('mag.txt', mag)
-		np.savetxt('freqs.txt', freqs)
-		np.savetxt('phase.txt', phase)
 
 		self.update_id()
+
+		if save:
+			np.savetxt('mag.txt', mag)
+			np.savetxt('freqs.txt', freqs)
+			np.savetxt('phase.txt', phase)
+		else:
+			return [freqs, mag, phase]
 
 
 class singleTonePowerSweep(singleToneFreqSweep):
@@ -157,55 +171,37 @@ class singleTonePowerSweep(singleToneFreqSweep):
 			for key in [*self.vna_settings][:-1]:
 				f.write("%s, %s\n" % (key, self.vna_settings[key]))
 
-	def meas(self, powers, vna_settings=None, source_settings=None, plot=True, save=True, reduce_bg=False):
+	def meas(self, powers, vna_settings=None, source_settings=None, plot=True, save=True):
 
 		channel = self.vna.channels.S21
-		self.write_vna_settings(vna_settings)
-		self.write_source_settings(source_settings)
-		self.vna.rf_on()
 		
-
-		self.write_path()
-		util.check_dir(str(self.counter))
-		self.save_vna_settings()
-		self.save_source_settings()
+		if save:
+			self.write_path()
+			util.check_dir(str(self.counter))
 		
-		freqs = util.sweep(self.vna_settings['center'], self.vna_settings['span'], self.vna_settings['npts'])
-		freqs = util.freq2GHz(freqs)
-		np.savetxt('freqs.txt', freqs)
-		np.savetxt('powers.txt', powers)
+		
 
 		## Start measurement and save live data
 		mags = []
-		if reduce_bg:
-			channel.power(-70)
-			mag_bg, phase_bg = channel.trace_mag_phase()
-			for p in powers:
-				channel.power(p)
-				amp, phase = channel.trace_mag_phase()
-				mag = util.mag2dB(amp) - util.mag2dB(mag_bg)
-				phase = phase - phase_bg
-				mags.append(mag)
-				with open('mags.csv', 'a') as f:
-					writer = csv.writer(f)
-					writer.writerow(mag)
-				with open('phases.csv', 'a') as f:
-					writer = csv.writer(f)
-					writer.writerow(phase)
-		else:
-			for p in powers:
-				channel.power(p)
-				amp, phase = channel.trace_mag_phase()
-				mag = util.mag2dB(amp)
-				mags.append(mag)
-				with open('mags.csv', 'a') as f:
-					writer = csv.writer(f)
-					writer.writerow(mag)
-				with open('phases.csv', 'a') as f:
-					writer = csv.writer(f)
-					writer.writerow(phase)
+		for p in powers:
+			vna_settings['power'] = p
+			freqs, mag, phase = super().meas(vna_settings, source_settings, False, False)
+			mags.append(mag)
+			with open('mags.csv', 'a') as f:
+				writer = csv.writer(f)
+				writer.writerow(mag)
+			with open('phases.csv', 'a') as f:
+				writer = csv.writer(f)
+				writer.writerow(phase)
 		if plot:
 			util.colorPlot(mags, freqs, powers, save)
+
+		if save:
+			self.save_vna_settings()
+			self.save_source_settings()
+			np.savetxt('freqs.txt', freqs)
+			np.savetxt('powers.txt', powers)
+
 
 		self.update_id()
 
@@ -222,35 +218,24 @@ class singleToneCurrentSweep(singleToneFreqSweep):
 		else:
 			raise util.InstrumentError("The source is off. Please turn it on.")
 
-	def meas(self, currents, vna_settings=None, source_settings=None, plot=True, save=True, reduce_bg=False):
+	def prepare_meas(self):
+		super().prepare_meas()
+		self.check_source_on()
+
+	def meas(self, currents, vna_settings=None, source_settings=None, plot=True, save=True):
 
 		channel = self.vna.channels.S21
-		self.write_vna_settings(vna_settings)
-		self.write_source_settings(source_settings)
-		self.vna.rf_on()
-		self.check_source_on()
 		
-
-		self.write_path()
-		util.check_dir(str(self.counter))
-		self.save_vna_settings()
+		if save:
+			self.write_path()
+			util.check_dir(str(self.counter))
 		
-		freqs = util.sweep(self.vna_settings['center'], self.vna_settings['span'], self.vna_settings['npts'])
-		freqs = util.freq2GHz(freqs)
-		np.savetxt('freqs.txt', freqs)
-		np.savetxt('currents.txt', currents)
 
 		## Start measurement and save live data
 		mags = []
 		for c in util.cur2A(currents):
-			self.source.current(c)
-			amp, phase = channel.trace_mag_phase()
-			mag = util.mag2dB(amp)
-			if reduce_bg:
-				channel.power(-70)
-				mag_bg, phase_bg = channel.trace_mag_phase()
-				mag = mag - util.mag2dB(mag_bg)
-				phase = phase - phase_bg
+			source_settings['cur'] = c
+			freqs, mag, phase = super().meas(vna_settings, source_settings, False, False)
 			mags.append(mag)
 			with open('mags.csv', 'a') as f:
 				writer = csv.writer(f)
@@ -260,6 +245,11 @@ class singleToneCurrentSweep(singleToneFreqSweep):
 				writer.writerow(phase)
 		if plot:
 			util.colorPlot(mags, freqs, currents, save)
+
+		if save:
+			self.save_vna_settings()
+			np.savetxt('freqs.txt', freqs)
+			np.savetxt('currents.txt', currents)
 
 		self.update_id()
 
@@ -303,14 +293,19 @@ class twoToneFreqSweep(spectroscopyMeas):
 		else:
 			raise util.InstrumentError("The source is off. Please turn it on.")
 
-	def end_meas(self):
+	def prepare_meas(self):
+		self.vna.rf_on()
+		self.check_source_on()
+
+
+	def end_twoTone(self):
 		channel = self.vna.channels.S21
 		channel.gen_off()
 		channel.ftt_off()
 
 	def ref_meas(self, vna_settings=None, source_settings=None, plot=True, save=True):
 
-		self.end_meas()
+		self.end_twoTone()
 
 		channel = self.vna.channels.S21
 		self.write_vna_settings(vna_settings)
@@ -320,8 +315,6 @@ class twoToneFreqSweep(spectroscopyMeas):
 		if save:
 			self.write_path()
 			util.check_dir('ref_' + str(self.counter))
-			self.save_vna_settings()
-			self.save_source_settings()
 
 		## Start Measurement
 		amp, phase = channel.trace_mag_phase()
@@ -347,8 +340,10 @@ class twoToneFreqSweep(spectroscopyMeas):
 			np.savetxt('mag.txt', mag)
 			np.savetxt('freqs.txt', freqs)
 			np.savetxt('phase.txt', phase)
-		
-		return [freqs, mag]
+			self.save_vna_settings()
+			self.save_source_settings()
+		else:
+			return [freqs, mag, phase]
 
 	def meas(self, vna_settings=None, source_settings=None, readout_settings=None, plot=True, save=True):
 		channel = self.vna.channels.S21
@@ -356,9 +351,7 @@ class twoToneFreqSweep(spectroscopyMeas):
 		self.write_source_settings(source_settings)
 		self.write_readout_settings(readout_settings)
 
-
-		self.vna.rf_on()
-		self.check_source_on()
+		self.prepare_meas()
 		
 		if save:
 			self.write_path()
@@ -386,14 +379,15 @@ class twoToneFreqSweep(spectroscopyMeas):
 
 		if plot:
 			util.tracePlot(mag, freqs, save)
+
+		self.update_id()
+
 		if save:
 			np.savetxt('mag.txt', mag)
 			np.savetxt('freqs.txt', freqs)
 			np.savetxt('phase.txt', phase)
-
-		self.update_id()
-
-		return [freqs, mag, phase]
+		else:
+			return [freqs, mag, phase]
 
 class twoTonePowerSweep(twoToneFreqSweep):
 
@@ -408,7 +402,7 @@ class twoTonePowerSweep(twoToneFreqSweep):
 			for key in [*self.vna_settings][:-1]:
 				f.write("%s, %s\n" % (key, self.vna_settings[key]))
 
-	def meas(self, powers, vna_settings=None, source_settings=None, readout_settings=None, plot=True, save=True, reduce_bg=False):
+	def meas(self, powers, vna_settings=None, source_settings=None, readout_settings=None, plot=True, save=True):
 
 		channel = self.vna.channels.S21
 
@@ -420,34 +414,19 @@ class twoTonePowerSweep(twoToneFreqSweep):
 		
 ## Start measurement and save live data
 		mags = []
-		if reduce_bg:
-			channel.power(-70)
-			mag_bg, phase_bg = channel.trace_mag_phase()
-			for p in powers:
-				self.vna_settings['power'] = p
-				freqs, mag, phase = super().meas(self.vna_settings, self.source_settings, self.readout_settings, False, False)
-				self.counter = self.counter - 1
-				mag = mag - util.mag2dB(mag_bg)
-				phase = phase - phase_bg
-				mags.append(mag)
-				with open('mags.csv', 'a') as f:
-					writer = csv.writer(f)
-					writer.writerow(mag)
-				with open('phases.csv', 'a') as f:
-					writer = csv.writer(f)
-					writer.writerow(phase)
-		else:
-			for p in powers:
-				self.vna_settings['power'] = p
-				freqs, mag, phase = super().meas(self.vna_settings, self.source_settings, self.readout_settings, False, False)
-				self.counter = self.counter - 1
-				mags.append(mag)
-				with open('mags.csv', 'a') as f:
-					writer = csv.writer(f)
-					writer.writerow(mag)
-				with open('phases.csv', 'a') as f:
-					writer = csv.writer(f)
-					writer.writerow(phase)
+		
+		for p in powers:
+			vna_settings['power'] = p
+			freqs, mag, phase = super().meas(vna_settings, source_settings, readout_settings, False, False)
+			self.counter = self.counter - 1
+			mags.append(mag)
+			with open('mags.csv', 'a') as f:
+				writer = csv.writer(f)
+				writer.writerow(mag)
+			with open('phases.csv', 'a') as f:
+				writer = csv.writer(f)
+				writer.writerow(phase)
+		
 		if plot:
 			util.colorPlot(mags, freqs, powers, save)
 
@@ -467,30 +446,17 @@ class twoToneCurrentSweep(twoToneFreqSweep):
 	def __init__(self, parent_dir, date, vna, source, vna_settings, source_settings):
 		super().__init__(parent_dir, date, vna, source, vna_settings, source_settings)
 
-	def check_source_on(self):
-		if self.source_settings['status']:
-			print('The source is on.')
-		else:
-			raise util.InstrumentError("The source is off. Please turn it on.")
 
-
-
-	def meas(self, currents, vna_settings_1=None, vna_settings_2=None, source_settings=None, readout_settings=None, plot=True, save=True):
+	def meas(self, currents, vna_settings_1, vna_settings_2, source_settings, readout_settings, plot=True, save=True):
 
 		channel = self.vna.channels.S21
 
-
-		self.vna.rf_on()
-		self.check_source_on()
 		
 		if save:
 			self.write_path()
 			util.check_dir(str(self.counter))
 		#self.save_source_settings()
 		#self.save_readout_settings()
-		
-		freqs = util.sweep(self.vna_settings['center'], self.vna_settings['span'], self.vna_settings['npts'])
-		freqs = util.freq2GHz(freqs)
 		
 		
 
@@ -502,16 +468,15 @@ class twoToneCurrentSweep(twoToneFreqSweep):
 
 		for c in util.cur2A(currents):
 
-			self.source_settings['cur'] = c
+			source_settings['cur'] = c
 			## Locate the initial readout freq
-			freqs, mag = self.ref_meas(vna_settings_2, self.source_settings, False, False)[1]
+			freqs, mag, phase = self.ref_meas(vna_settings_2, source_settings, False, False)
 			f = util.readout_loc(mag, freqs)
 			readout_freq.append(f)
 			readout_settings['readout_freq'] = f*1e9
-			self.write_readout_settings(readout_settings)
 
 
-			freqs, mag, phase = super().meas(vna_settings_1, self.source_settings, self.readout_settings, False, False)
+			freqs, mag, phase = super().meas(vna_settings_1, source_settings, readout_settings, False, False)
 			self.counter = self.counter - 1
 			
 			mags.append(mag)

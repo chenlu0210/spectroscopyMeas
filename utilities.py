@@ -75,7 +75,7 @@ def check_dir(path):
 		print("The directory %s had been created. Transfer to the directory now." %path)
 		os.chdir(path)
 	else:
-    	os.mkdir(path)
+		os.mkdir(path)
 		os.chdir(path)
 
 def create_dir(path):
