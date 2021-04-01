@@ -25,6 +25,16 @@ def sweep(center, span, npts):
 	vals = np.linspace(start, stop, npts)
 	return vals
 
+## Rough version without doing proper fit
+def readout_loc(mag, freqs):
+	freq_max = freqs[np.argmax(mag)]
+	freq_min = freqs[np.argmin(mag)]
+	if freq_min > freq_max:
+		## the resonator is asymmetric and leaning to the left side
+		return freq_min - (freq_min - freq_max)/3
+	if freq_min < freq_max:
+		## the asymmetric resonator leans towards the right side
+		return freq_min + (freq_max - freq_min)/3
 
 
 
