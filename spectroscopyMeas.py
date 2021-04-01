@@ -443,8 +443,8 @@ class twoToneCurrentSweep(twoToneFreqSweep):
 
 	name = "TwoToneCurrentSweep"
 
-	def __init__(self, parent_dir, date, vna, source, vna_settings, source_settings):
-		super().__init__(parent_dir, date, vna, source, vna_settings, source_settings)
+	def __init__(self, parent_dir, date, vna, source, vna_settings, source_settings, readout_settings):
+		super().__init__(parent_dir, date, vna, source, vna_settings, source_settings, readout_settings)
 
 
 	def meas(self, currents, vna_settings_1, vna_settings_2, source_settings, readout_settings, plot=True, save=True):
