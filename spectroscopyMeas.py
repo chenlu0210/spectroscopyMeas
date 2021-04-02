@@ -67,8 +67,6 @@ class spectroscopyMeas:
 	def write_vna_settings(self, vna_settings=None):
 		if vna_settings:
 			self.vna_settings = vna_settings
-		print(self.vna_settings.keys())
-		print(self.vna_settings)
 		channel = self.vna.channels.S21
 		channel.avg(self.vna_settings['avg'])
 		channel.bandwidth(self.vna_settings['band'])
@@ -186,6 +184,7 @@ class singleTonePowerSweep(singleToneFreqSweep):
 		for p in powers:
 			vna_settings['power'] = p
 			freqs, mag, phase = super().meas(vna_settings, source_settings, False, False)
+			self.counter -= 1
 			mags.append(mag)
 			with open('mags.csv', 'a') as f:
 				writer = csv.writer(f)
@@ -236,6 +235,8 @@ class singleToneCurrentSweep(singleToneFreqSweep):
 		for c in util.cur2A(currents):
 			source_settings['cur'] = c
 			freqs, mag, phase = super().meas(vna_settings, source_settings, False, False)
+			self.counter-=1
+			print(self.source_settings['cur'])
 			mags.append(mag)
 			with open('mags.csv', 'a') as f:
 				writer = csv.writer(f)
