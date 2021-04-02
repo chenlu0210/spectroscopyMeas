@@ -232,7 +232,7 @@ class singleToneCurrentSweep(singleToneFreqSweep):
 
 		## Start measurement and save live data
 		mags = []
-		for c in util.cur2A(currents):
+		for c in currents:
 			source_settings['cur'] = c
 			freqs, mag, phase = super().meas(vna_settings, source_settings, False, False)
 			self.counter-=1
@@ -467,7 +467,7 @@ class twoToneCurrentSweep(twoToneFreqSweep):
 
 		## Start measurement and save live data
 
-		for c in util.cur2A(currents):
+		for c in currents:
 
 			source_settings['cur'] = c
 			## Locate the initial readout freq
