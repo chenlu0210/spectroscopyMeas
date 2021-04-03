@@ -39,11 +39,14 @@ def readout_loc(mag, freqs):
 
 
 ## Simple Plot helper function
-def tracePlot(vals, xs, save=False):
+def tracePlot(vals, xs, save=False, style=None):
 	fig, ax = plt.subplots()
 	ax.set_xlabel('Freqs')
 	ax.set_ylabel('Mag')
-	ax.plot(xs, vals)
+	if style:
+		ax.plot(xs, vals, style)
+	else:
+		ax.plot(xs, vals)
 	plt.tight_layout()
 	if save:
 		plt.savefig('mag_trace.png')
