@@ -41,7 +41,16 @@ class spectroscopyMeas:
 
 	def end_meas(self):
 		self.vna.rf_off()
-		self.source.off()
+		self.source.off
+
+	def grab_file(self, fileName, path=None, counter=None):
+		files = []
+		if not path:
+			path = self.path
+		if not counter:
+			counter = self.counter
+		path = path + '\\' + str(counter)
+		return np.loadtxt(os.path.join(path, fileName))
 
 	def mark(self, id=None):
 		if id:
@@ -112,7 +121,17 @@ class singleToneFreqSweep(spectroscopyMeas):
 		self.path = self.path + '\\' + self.name
 		util.check_dir(self.path)
 
-	
+
+## Retrieving data
+	def get_mag(self, path=None, counter=None):
+		return self.grab_file('mag.txt', path, counter)
+
+	def get_phase(self, path=None, counter=None):
+		return self.grab_file('phase.txt', path, counter)
+
+	def get_freqs(self, path=None, counter=None):
+		return self.grab_file('freqs.txt', path, counter)
+
 	def meas(self, vna_settings=None, source_settings=None, plot=True, save=True, style=None):
 		channel = self.vna.channels.S21
 		self.write_vna_settings(vna_settings)
@@ -169,6 +188,17 @@ class singleTonePowerSweep(singleToneFreqSweep):
 			for key in [*self.vna_settings][:-1]:
 				f.write("%s, %s\n" % (key, self.vna_settings[key]))
 
+	
+	def get_mag(self, path=None, counter=None):
+		return self.grab_file('mag.csv', path, counter)
+
+	def get_phase(self, path=None, counter=None):
+		return self.grab_file('phase.csv', path, counter)
+
+	def get_powers(self, path=None, counter=None):
+		return self.grab_file('powers.txt', path, counter)
+
+
 	def meas(self, powers, vna_settings=None, source_settings=None, plot=True, save=True, style=None):
 
 		channel = self.vna.channels.S21
@@ -220,6 +250,15 @@ class singleToneCurrentSweep(singleToneFreqSweep):
 	def prepare_meas(self):
 		super().prepare_meas()
 		self.check_source_on()
+
+	def get_mag(self, path=None, counter=None):
+		return self.grab_file('mag.csv', path, counter)
+
+	def get_phase(self, path=None, counter=None):
+		return self.grab_file('phase.csv', path, counter)
+
+	def get_currents(self, path=None, counter=None):
+		return self.grab_file('currents.txt', path, counter)
 
 	def meas(self, currents, vna_settings=None, source_settings=None, plot=True, save=True, style=None):
 
@@ -287,6 +326,15 @@ class twoToneFreqSweep(spectroscopyMeas):
 		with open('readout_settings.csv', 'w') as f:
 			for key in self.readout_settings.keys():
 				f.write("%s, %s\n" % (key, self.readout_settings[key]))
+
+	def get_mag(self, path=None, counter=None):
+		return self.grab_file('mag.txt', path, counter)
+
+	def get_phase(self, path=None, counter=None):
+		return self.grab_file('phase.txt', path, counter)
+
+	def get_freqs(self, path=None, counter=None):
+		return self.grab_file('freqs.txt', path, counter)
 
 	def check_source_on(self):
 		if self.source_settings['status']:
@@ -403,6 +451,15 @@ class twoTonePowerSweep(twoToneFreqSweep):
 			for key in [*self.vna_settings][:-1]:
 				f.write("%s, %s\n" % (key, self.vna_settings[key]))
 
+	def get_mag(self, path=None, counter=None):
+		return self.grab_file('mag.csv', path, counter)
+
+	def get_phase(self, path=None, counter=None):
+		return self.grab_file('phase.csv', path, counter)
+
+	def get_powers(self, path=None, counter=None):
+		return self.grab_file('powers.txt', path, counter)
+
 	def meas(self, powers, vna_settings=None, source_settings=None, readout_settings=None, plot=True, save=True, style=None):
 
 		channel = self.vna.channels.S21
@@ -446,6 +503,15 @@ class twoToneCurrentSweep(twoToneFreqSweep):
 
 	def __init__(self, parent_dir, date, vna, source, vna_settings, source_settings, readout_settings):
 		super().__init__(parent_dir, date, vna, source, vna_settings, source_settings, readout_settings)
+
+	def get_mag(self, path=None, counter=None):
+		return self.grab_file('mag.csv', path, counter)
+
+	def get_phase(self, path=None, counter=None):
+		return self.grab_file('phase.csv', path, counter)
+
+	def get_currents(self, path=None, counter=None):
+		return self.grab_file('currents.txt', path, counter)
 
 
 	def meas(self, currents, vna_settings_1, vna_settings_2, source_settings, readout_settings, plot=True, save=True, style=None):
