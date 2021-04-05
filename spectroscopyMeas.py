@@ -48,9 +48,12 @@ class spectroscopyMeas:
 		if not path:
 			path = self.path
 		if not counter:
-			counter = self.counter
+			counter = self.counter-1
 		path = path + '\\' + str(counter)
-		return np.loadtxt(os.path.join(path, fileName))
+		if fileName.split('.')[1] == 'csv':
+			return np.loadtxt(open(os.path.join(path, fileName), "rb"), delimiter=",")
+		elif fileName.split('.')[1] == 'txt':
+			return np.loadtxt(os.path.join(path, fileName))
 
 	def mark(self, id=None):
 		if id:
@@ -190,10 +193,10 @@ class singleTonePowerSweep(singleToneFreqSweep):
 
 	
 	def get_mag(self, path=None, counter=None):
-		return self.grab_file('mag.csv', path, counter)
+		return self.grab_file('mags.csv', path, counter)
 
 	def get_phase(self, path=None, counter=None):
-		return self.grab_file('phase.csv', path, counter)
+		return self.grab_file('phases.csv', path, counter)
 
 	def get_powers(self, path=None, counter=None):
 		return self.grab_file('powers.txt', path, counter)
@@ -252,10 +255,10 @@ class singleToneCurrentSweep(singleToneFreqSweep):
 		self.check_source_on()
 
 	def get_mag(self, path=None, counter=None):
-		return self.grab_file('mag.csv', path, counter)
+		return self.grab_file('mags.csv', path, counter)
 
 	def get_phase(self, path=None, counter=None):
-		return self.grab_file('phase.csv', path, counter)
+		return self.grab_file('phases.csv', path, counter)
 
 	def get_currents(self, path=None, counter=None):
 		return self.grab_file('currents.txt', path, counter)
@@ -452,10 +455,10 @@ class twoTonePowerSweep(twoToneFreqSweep):
 				f.write("%s, %s\n" % (key, self.vna_settings[key]))
 
 	def get_mag(self, path=None, counter=None):
-		return self.grab_file('mag.csv', path, counter)
+		return self.grab_file('mags.csv', path, counter)
 
 	def get_phase(self, path=None, counter=None):
-		return self.grab_file('phase.csv', path, counter)
+		return self.grab_file('phases.csv', path, counter)
 
 	def get_powers(self, path=None, counter=None):
 		return self.grab_file('powers.txt', path, counter)
@@ -505,10 +508,10 @@ class twoToneCurrentSweep(twoToneFreqSweep):
 		super().__init__(parent_dir, date, vna, source, vna_settings, source_settings, readout_settings)
 
 	def get_mag(self, path=None, counter=None):
-		return self.grab_file('mag.csv', path, counter)
+		return self.grab_file('mags.csv', path, counter)
 
 	def get_phase(self, path=None, counter=None):
-		return self.grab_file('phase.csv', path, counter)
+		return self.grab_file('phases.csv', path, counter)
 
 	def get_currents(self, path=None, counter=None):
 		return self.grab_file('currents.txt', path, counter)
