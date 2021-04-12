@@ -19,6 +19,7 @@ def cur2A(current):
 	return current*1e-3
 
 
+
 def sweep(center, span, npts):
 	start = center - span/2
 	stop = center + span/2
@@ -92,4 +93,8 @@ def change_dir(path):
 		os.chdir(path)
 	else:
 		raise PathError("The directory %s doesn't exist." %path)
+
+## Grab data in files
+#def grab_file(dir, file):
+
     	
