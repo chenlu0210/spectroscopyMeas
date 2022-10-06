@@ -56,9 +56,9 @@ def tracePlot(vals, xs, save=False, style=None):
     plt.show()
 
 def colorPlot(fig, ax, cax, vals, xs, ys, save=False):
-    ax.set_xlabel('Freqs')
-    ax.set_ylabel('Powers')
-    ax.set_title('Mag')
+    #ax.set_xlabel('Freqs')
+    #ax.set_ylabel('Powers')
+    #ax.set_title('Mag')
     im = ax.imshow(vals,extent = (min(xs), max(xs), min(ys), max(ys)), 
                  origin='lower', aspect='auto')
     fig.colorbar(im, cax=cax)
@@ -85,6 +85,13 @@ def initialize_Plot():
     cax2 = div2.append_axes('right', '5%', '5%')
     return [fig, line_ax1, line_ax2, color_ax1, color_ax2, line_ax3, line_ax4, cax1, cax2]
 ## Track cavity helper functions
+def fit_cavity(freqs, mag, phase, dtype='dBmagphaserad'):
+    port1 = circuit.notch_port()
+    port1.f_data = freqs*1e9
+    port1.z_data_raw = port1._ConvToCompl(mag, phase, dtype)
+    port1.autofit()
+    return port1.fitresults
+
 def find_Q(freqs, mag, phase):
     port1 = circuit.notch_port()
     port1.f_data = freqs*1e9
@@ -96,6 +103,11 @@ def find_Q(freqs, mag, phase):
     Qlerr = port1.fitresults['Ql_err']
     return [Qi, Qierr, Ql, Qlerr]
 
+def find_Q_GUI(freqs, mag, phase):
+    port1 = circuit.notch_port()
+    port1.f_data = freqs*1e9
+    port1.z_data_raw = port1._ConvToCompl(mag, phase, 'dBmagphaserad')
+    port1.GUIfit()
 
 
 ## Directory related helper functions
@@ -121,6 +133,13 @@ def change_dir(path):
         os.chdir(path)
     else:
         raise PathError("The directory %s doesn't exist." %path)
+
+def grab_file(fileName, path, skip_rows=0, dtype=str):
+    change_dir(path)
+    if fileName.split('.')[1] == 'csv':
+        return np.loadtxt(open(os.path.join(path, fileName), "rb"), delimiter=",", skiprows=skip_rows, dtype=dtype)
+    elif fileName.split('.')[1] == 'txt':
+        return np.loadtxt(os.path.join(path, fileName), skiprows=skip_rows, dtype=dtype)
 
 ## Grab data in files
 #def grab_file(dir, file):
