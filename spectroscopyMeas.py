@@ -1,5 +1,5 @@
 import os
-from Res_Meas import utilities as util
+from spectroscopyMeas import utilities as util
 import csv
 import numpy as np
 from matplotlib import animation
