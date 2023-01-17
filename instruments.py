@@ -155,7 +155,7 @@ class source_unit(base_instrument):
     	if 'sweep' in self.func:
     		return settings
         elif 'bias' in self.func:
-        	settings['bias'] = self.write_val()
+        	settings['val'] = self.write_val()
         	return settings
 
     def write_val(self, val=None):

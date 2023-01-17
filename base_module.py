@@ -51,7 +51,7 @@ class base_instrument():
         pass
 
     def get_settings(self):
-        settings = {'name':name, 'func':func, 'mode':mode, 'unit':unit, 'val':self.read_val()}
+        settings = {'name':name, 'func':func, 'mode':mode, 'unit':unit}
         return settings
 
 ## Update this: change the data structure from list to dictionary
@@ -68,8 +68,8 @@ class instr_list():
         self.instr_list[instr.func] = instr
         
 
-    def save_settings(self, path):
-        with open(path+'//instr_settings.csv', 'w') as f:
+    def save_settings(self, path, fileName='instr_settings'):
+        with open(path+'//{}.csv'.format(fileName), 'w') as f:
             writer = csv.writer(f)
             for instr in self.instr_list.values():
                 writer.writerow(instr.get_settings.keys())
@@ -373,11 +373,6 @@ class TwoDSweeper(OneDSweeper):
         self.set_numofsense(numofsense=numofsense)
         self.init_data_holders()
 
-    def set_numofsense(self, numofsense=None):
-        if numofsense is None:
-            self.numofsense = 1
-        else:
-            self.numofsense = numofsense
 
     def set_sweep_param(self, sweep_param1=None, sweep_param2=None):
         if sweep_param1 is None:
@@ -479,7 +474,8 @@ class TwoDSweeper(OneDSweeper):
             #self.axes[j].legend()
 
         if i == len(self.sweep_param1)*len(self.sweep_param2) - 1:
-            self.fig.colorbar(im)
+            for im in cmaps:
+                self.fig.colorbar(im)
             path = self.path + '\\' + str(self.counter)
             if save_plot:
                 self.fig.savefig(path+'\\{}.pdf'.format(figName))
@@ -494,18 +490,6 @@ class TwoDSweeper(OneDSweeper):
             self.end_func()
         return lines
 
-
-    def init_func(self): 
-        self.rt_x = []
-        self.init_data_holders()
-        self.start_time = time.time()
-
-    def end_func(self):
-        self.end_time = time.time()
-        self.update_id()
-        self.mark()
-        log_info = [self.date, str(self.get_id()), self.markers[str(self.get_id())]]
-        self.update_log(log_info)
 
     def mark(self, id=None, message=None):
         if message is None:
