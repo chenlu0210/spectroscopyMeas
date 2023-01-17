@@ -1,5 +1,5 @@
 import os
-from spectroscopyMeas import utilities as util
+from Res_Meas import utilities as util
 import csv
 import numpy as np
 from matplotlib import animation
@@ -89,7 +89,6 @@ class spectroscopyMeas:
             return 0.0
 
     def grab_file(self, fileName, path=None, counter=None, skip_rows=0):
-        files = []
         if not path:
             path = self.path
         if not counter:
@@ -547,8 +546,8 @@ class singleTonePowerSweep(singleToneFreqSweep):
                 Ql_errs.append(results["Ql_err"])
                 line3 = line_ax3.errorbar(powers[:i+1], Qls, yerr=Ql_errs)
                 line4 = line_ax4.errorbar(powers[:i+1], Qis, yerr=Qi_errs)
-
-            return line1, line2, cmap1, cmap2, line3, line4, 
+                return line1, line2, cmap1, cmap2, line3, line4,
+            return line1, line2, cmap1, cmap2,    
         
         self.update_id()
         self.mark(powers)

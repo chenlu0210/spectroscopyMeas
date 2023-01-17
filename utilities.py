@@ -141,6 +141,19 @@ def grab_file(fileName, path, skip_rows=0, dtype=str):
     elif fileName.split('.')[1] == 'txt':
         return np.loadtxt(os.path.join(path, fileName), skiprows=skip_rows, dtype=dtype)
 
+def save_dict(fileName, path, d, opt='w'):
+    change_dir(path)
+    with open(path+'//'+fileName, opt) as f:
+        writer = csv.writer(f)
+        writer.writerow(d.keys())
+        writer.writerow(d.values())
+
+def update_dict(d, k, v):
+    if k in d:
+        d[k].append(v)
+    else:
+        d[k] = list(v)
+
 ## Grab data in files
 #def grab_file(dir, file):
 
