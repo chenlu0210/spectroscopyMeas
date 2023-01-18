@@ -37,10 +37,6 @@ class OneDMeas(OneDSweeper):
             if 'sense' in k:
                 numofsense += 1
                 sense_keys.append(k)
-        if numofsweep!=1:
-            print('You do not just have one sweep instrument. Check your instr_list!')    
-            if numofsense == 0:
-                print('You do not have any sense instrument. Check your instr_list!')
         self.numofsense = numofsense
         self.numofbias = numofbias
         self.init_data_holders(sense_keys=sense_keys)
@@ -176,6 +172,7 @@ class OneDMeas(OneDSweeper):
 
     def init_func(self, fig=None, axes=None, save_data=True): 
         super().init_func(fig=fig, axes=axes, save_data=save_data)
+        self.save_settings()
         self.on()
 
     def grab_data_from_file(self, instr=None, fileName=None, path=None, counter=None, skip_rows=0):
@@ -207,10 +204,6 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
             if 'sense' in k:
                 numofsense += 1
                 sense_keys.append(k)
-        if numofsweep!=2:
-            print('You do not just have two sweep instruments. Check your instr_list!')    
-        if numofsense == 0:
-            print('You do not have any sense instrument. Check your instr_list!')
         self.numofsense = numofsense
         self.numofbias = numofbias
         self.init_data_holders(sense_keys=sense_keys)
@@ -245,6 +238,3 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
         if save_data:
             self.save_zdata()
 
-    def init_func(self, fig=None, axes=None, save_data=True): 
-        super().init_func(fig=fig, axes=axes, save_data=save_data)
-        self.on()
