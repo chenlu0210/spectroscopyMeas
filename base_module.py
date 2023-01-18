@@ -71,6 +71,8 @@ class instr_list():
     def add_instr(self, instr):
         self.instr_list[instr.func] = instr
         
+    def delete_instr(self, instr):
+        self.instr_list.pop(instr.func)
 
     def save_settings(self, path, fileName='instr_settings'):
         with open(path+'//{}.csv'.format(fileName), 'w') as f:
@@ -83,7 +85,8 @@ class base_measurement():
 
     name = 'base_meas'
 
-    def __init__(self, parent_dir, date, instr_list=None):
+    def __init__(self, parent_dir, date, instr_list=None, name=None):
+        self.change_name(name=name)
         self.parent_dir = parent_dir + '\\' + self.name
         #self.instr_list = instr_list
         util.check_dir(self.parent_dir)
@@ -106,8 +109,9 @@ class base_measurement():
         util.check_dir(self.date)
         self.path = self.parent_dir + '\\' + self.date
 
-    def change_name(self, name):
-        self.name = name
+    def change_name(self, name=None):
+        if name is not None:
+            self.name = name
 
     def recover(self):
         
@@ -226,8 +230,8 @@ class OneDSweeper(base_measurement):
 
     name = '1D Sweep'
 
-    def __init__(self, parent_dir, date, instr_list=None, sweep_param=None, numofsense=None, fig=None, axes=None):
-        super().__init__(parent_dir, date, instr_list=instr_list)
+    def __init__(self, parent_dir, date, instr_list=None, sweep_param=None, numofsense=None, fig=None, axes=None, name=None):
+        super().__init__(parent_dir, date, instr_list=instr_list, name=name)
         ####
         #sweep_param: list of values that you want to sweep
         # numofsense: numbers of sense variables
@@ -400,8 +404,8 @@ class TwoDSweeper(OneDSweeper):
 
     name = '2D Sweep'
 
-    def __init__(self, parent_dir, date, instr_list=None, sweep_param1=None, sweep_param2=None, numofsense=None, fig=None, axes=None):
-        super(OneDSweeper, self).__init__(parent_dir, date, instr_list=instr_list)
+    def __init__(self, parent_dir, date, instr_list=None, sweep_param1=None, sweep_param2=None, numofsense=None, fig=None, axes=None, name=None):
+        super(OneDSweeper, self).__init__(parent_dir, date, instr_list=instr_list, name=name)
         ####
         #sweep_param: list of values that you want to sweep
         # numofsense: numbers of sense variables

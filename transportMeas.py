@@ -15,8 +15,8 @@ class OneDMeas(OneDSweeper):
 
     name = 'OneDMeas'
 
-    def __init__(self, parent_dir, date, instrs, settings=None):
-        super(OneDSweeper, self).__init__(parent_dir, date)
+    def __init__(self, parent_dir, date, instrs, settings=None, name=None):
+        super(OneDSweeper, self).__init__(parent_dir, date, name=name)
 
         self.set_instr_list(instrs = instrs, settings=settings)
 
@@ -54,16 +54,21 @@ class OneDMeas(OneDSweeper):
 
     def delete_instr(self, instr):
         if instr in self.instr_list.instr_list.values():
+            self.instr_list.pop(instr)
             self.set_sweeper()
             self.update_settings(instr, mode='delete')
         else:
             print('instr not present in instr_list')
 
     def update_func(self, instr, func, val=None):
+        # Everytime you change the function of the instrument, 
+        #its setting will by default becomes None if you don't specify its new value
         if instr in self.instr_list.instr_list.values():
+            self.instr_list.delete_instr(instr)
             if instr.func in self.settings.keys():
                 self.settings.pop(instr.func)
             instr.set_func(func=func)
+            self.instr_list.add_instr(instr)
             self.set_sweeper()
             self.update_settings(instr, val=val)		
 
@@ -173,13 +178,22 @@ class OneDMeas(OneDSweeper):
         super().init_func(fig=fig, axes=axes, save_data=save_data)
         self.on()
 
+    def grab_data_from_file(self, instr=None, fileName=None, path=None, counter=None, skip_rows=0):
+        if fileName is not None:
+            self.grab_file(fileName, path=path, counter=counter, skip_rows=skip_rows)
+        elif instr is not None:
+            self.grab_file('{}.txt'.format(instr.func), path=path, counter=counter)
+        else:
+            print('You have to specify what file to grab')
+
+
 
 class TwoDMeas(TwoDSweeper, OneDMeas):
 
     name = 'TwoDMeas'
 
-    def __init__(self, parent_dir, date, instrs, settings=None):
-        OneDMeas.__init__(parent_dir, date, date, instrs, settings=settings)
+    def __init__(self, parent_dir, date, instrs, settings=None, name=None):
+        OneDMeas.__init__(parent_dir, date, date, instrs, settings=settings, name=name)
 
 
     def set_sweeper(self):
