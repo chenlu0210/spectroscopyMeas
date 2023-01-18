@@ -150,9 +150,9 @@ def save_dict(fileName, path, d, opt='w'):
 
 def update_dict(d, k, v):
     if k in d:
-        d[k].append(v)
+        d[k] = [d[k]].append(v)
     else:
-        d[k] = list(v)
+        d[k] = v
 
 ## Grab data in files
 #def grab_file(dir, file):

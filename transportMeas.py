@@ -3,6 +3,7 @@ import time
 import csv
 import numpy as np
 from Res_Meas.base_module import OneDSweeper, instr_list, TwoDSweeper
+from Res_Meas import utilities as util
 from matplotlib import animation
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -10,83 +11,92 @@ import itertools
 
 class OneDMeas(OneDSweeper):
 
-	name = 'OneDMeas'
+    name = 'OneDMeas'
 
-	def __init__(self, parent_dir, date, instrs, settings=None):
-		super(OneDSweeper, self).__init__(parent_dir, date)
-		self.set_instr_list(instrs = instrs)
-		self.set_settings(settings = settings)
-		self.init_data_holders()
-
-
-	def set_instr_list(self, instrs):
-		self.instr_list = instr_list(instrs)
-		numofsense, numofbias, numofsweep = 0, 0, 0
-		for k in self.instr_list.keys():
-			if 'sweep' in k:
-				numofsweep += 1
-			if 'bias' in k:
-				numofbias += 1
-			if 'sense' in k:
-				numofsense += 1
-		self.numofsense = numofsense
-		self.numofbias = numofbias
-		if numofsweep!=1:
-			print('You do not just have one sweep instrument. Check your instr_list!')		
+    def __init__(self, parent_dir, date, instrs, settings=None):
+        super(OneDSweeper, self).__init__(parent_dir, date)
+        self.set_instr_list(instrs = instrs)
+        self.set_settings(settings = settings)
+        self.init_data_holders()
 
 
-	def set_settings(self, settings=None):
-		if settings is None:
-			self.instr_list.create_empty_settings()
-		else:
-			self.settings = settings
-		self.write_settings()
+    def set_instr_list(self, instrs):
+        self.instr_list = instr_list(instrs)
+        numofsense, numofbias, numofsweep = 0, 0, 0
+        for k in self.instr_list.instr_list.keys():
+            if 'sweep' in k:
+                numofsweep += 1
+            if 'bias' in k:
+                numofbias += 1
+            if 'sense' in k:
+                numofsense += 1
+        self.numofsense = numofsense
+        self.numofbias = numofbias
+        if numofsweep!=1:
+            print('You do not just have one sweep instrument. Check your instr_list!')      
 
-	def create_empty_settings(self):
-		settings = {}
-		for k in self.instr_list.keys():
-			if 'bias' in k or 'sweep' in k:
-				settings[k] = None
-		self.settings = settings
+
+    def set_settings(self, settings=None):
+        if settings is None:
+            self.create_empty_settings()
+        else:
+            self.settings = settings
+        self.write_settings()
+
+    def create_empty_settings(self):
+        settings = {}
+        for k in self.instr_list.instr_list.keys():
+            if 'bias' in k or 'sweep' in k:
+                settings[k] = None
+        self.settings = settings
 
 
-	def write_settings(self):
-		for k in self.settings.keys():
-			if 'sweep' in k:
-				self.set_sweep_param(sweep_param=self.settings[k])
-			if 'bias' in k:
-				try:
-					self.instr_list[k].write_val(self.settings[k])
-				except KeyError:
-					print('instr_list does not match settings')
+    def write_settings(self):
+        for k in self.settings.keys():
+            if 'sweep' in k:
+                self.set_sweep_param(sweep_param=self.settings[k])
+            if 'bias' in k:
+                try:
+                    self.instr_list.instr_list[k].write_val(self.settings[k])
+                except KeyError:
+                    print('instr_list does not match settings')
 
 
     def save_settings(self, fileName='instr_settings', path=None, counter=None):
-    	if not path:
+        if not path:
             path = self.path
         if not counter:
-        	counter = self.counter
+            counter = self.counter
         path = path + '\\' + str(counter)
         self.instr_list.save_settings(path, fileName=fileName)
 
     def get_sense_instr(self, i):
-    	for k in self.instr_list.keys():
-    		if 'sense' in k and str(i) in k:
-    			return self.instr_list[k]
+        if self.numofsense==1:
+            for k in self.instr_list.instr_list.keys():
+                if 'sense' in k:
+                    return self.instr_list.instr_list[k]
+        else:
+            for k in self.instr_list.instr_list.keys():
+                if 'sense' in k and str(i) in k:
+                    return self.instr_list.instr_list[k]
 
     def get_bias_instr(self, i):
-    	for k in self.instr_list.keys():
-    		if 'bias' in k and str(i) in k:
-    			return self.instr_list[k]
+        for k in self.instr_list.instr_list.keys():
+            if 'bias' in k and str(i) in k:
+                return self.instr_list.instr_list[k]
 
     def get_sweep_instr(self):
-    	for k in self.instr_list.keys():
-    		if 'sweep' in k:
-    			return self.instr_list[k]
+        for k in self.instr_list.instr_list.keys():
+            if 'sweep' in k:
+                return self.instr_list.instr_list[k]
 
     def sense(self, i):
-    	instr = self.get_sense_instr(i)
-    	return instr.read_val()
+        instr = self.get_sense_instr(i)
+        return instr.read_val()
+
+    def update_sweep(self, i):
+        self.rt_x = self.sweep_param[:i+1]
+        self.get_sweep_instr().write_val(self.sweep_param[i])
 
     def update_sense(self, i, save_data=True):
         for j in range(self.numofsense):
@@ -174,21 +184,21 @@ class OneDMeas(OneDSweeper):
     #         i+=1
     #         np.savetxt(path+"\\{}{}.txt".format(fileName,i), data)
     def on(self):
-    	for k in self.instr_list.keys():
-    		if 'sweep' in k or 'bias' in k or 'sense' in k:
-    			self.instr_list[k].on()
+        for k in self.instr_list.instr_list.keys():
+            if 'sweep' in k or 'bias' in k or 'sense' in k:
+                self.instr_list.instr_list[k].on()
 
     def off(self):
-    	for k in self.instr_list.keys():
-    		if 'sweep' in k or 'bias' in k or 'sense' in k:
-    			self.instr_list[k].off()
+        for k in self.instr_list.instr_list.keys():
+            if 'sweep' in k or 'bias' in k or 'sense' in k:
+                self.instr_list.instr_list[k].off()
 
-    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, instrs=None, settings=None):
+    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, instrs=None):
         self.write_path()
         util.check_dir(str(self.counter))
         if instrs is not None:
-        	self.set_instr_list(instrs)
-        self.write_settings(settings=settings)
+            self.set_instr_list(instrs)
+        self.write_settings()
         self.init_axes(fig=fig, axes=axes)
         self.update_axes()
         if save_data:
@@ -196,91 +206,102 @@ class OneDMeas(OneDSweeper):
             self.save_settings()
         self.on()
         self.ani = animation.FuncAnimation(self.fig, self.update_data, frames=len(self.sweep_param), repeat=False, init_func=self.init_func, blit=False, fargs=(save_data,save_plot,))
-        plt.show(block=True)	
+        plt.show(block=True)    
 
 
 class TwoDMeas(TwoDSweeper):
 
-	name = 'TwoDMeas'
+    name = 'TwoDMeas'
 
-	def __init__(self, parent_dir, date, instrs, settings=None):
-		super(OneDSweeper, self).__init__(parent_dir, date)
-		self.set_instr_list(instrs = instrs)
-		self.set_settings(settings = settings)
-		self.init_data_holders()
-
-
-	def set_instr_list(self, instrs):
-		self.instr_list = instr_list(instrs)
-		numofsense, numofbias, numofsweep = 0, 0, 0
-		for k in self.instr_list.keys():
-			if 'sweep' in k:
-				numofsweep += 1
-			if 'bias' in k:
-				numofbias += 1
-			if 'sense' in k:
-				numofsense += 1
-		self.numofsense = numofsense
-		self.numofbias = numofbias
-		if numofsweep!=2:
-			print('You do not just have two sweep instruments. Check your instr_list!')		
+    def __init__(self, parent_dir, date, instrs, settings=None):
+        super(OneDSweeper, self).__init__(parent_dir, date)
+        self.set_instr_list(instrs = instrs)
+        self.set_settings(settings = settings)
+        self.init_data_holders()
 
 
-	def set_settings(self, settings=None):
-		if settings is None:
-			self.instr_list.create_empty_settings()
-		else:
-			self.settings = settings
-		self.write_settings()
+    def set_instr_list(self, instrs):
+        self.instr_list = instr_list(instrs)
+        numofsense, numofbias, numofsweep = 0, 0, 0
+        for k in self.instr_list.instr_list.keys():
+            if 'sweep' in k:
+                numofsweep += 1
+            if 'bias' in k:
+                numofbias += 1
+            if 'sense' in k:
+                numofsense += 1
+        self.numofsense = numofsense
+        self.numofbias = numofbias
+        if numofsweep!=2:
+            print('You do not just have two sweep instruments. Check your instr_list!')     
 
-	def create_empty_settings(self):
-		settings = {}
-		for k in self.instr_list.keys():
-			if 'bias' in k or 'sweep' in k:
-				settings[k] = None
-		self.settings = settings
+
+    def set_settings(self, settings=None):
+        if settings is None:
+            self.create_empty_settings()
+        else:
+            self.settings = settings
+        self.write_settings()
+
+    def create_empty_settings(self):
+        settings = {}
+        for k in self.instr_list.instr_list.keys():
+            if 'bias' in k or 'sweep' in k:
+                settings[k] = None
+        self.settings = settings
 
 
-	def write_settings(self):
-		for k in self.settings.keys():
-			if 'sweep' in k and '1' in k:
-				sweep_param1 = self.settings[k]
-			if 'sweep' in k and '2' in k:
-				sweep_param2 = self.settings[k]
-			if 'bias' in k:
-				try:
-					self.instr_list[k].write_val(self.settings[k])
-				except KeyError:
-					print('instr_list does not match settings')
-		self.set_sweep_param(sweep_param1=sweep_param1, sweep_param2=sweep_param2)
+    def write_settings(self):
+        for k in self.settings.keys():
+            if 'sweep' in k and '1' in k:
+                sweep_param1 = self.settings[k]
+            if 'sweep' in k and '2' in k:
+                sweep_param2 = self.settings[k]
+            if 'bias' in k:
+                try:
+                    self.instr_list.instr_list[k].write_val(self.settings[k])
+                except KeyError:
+                    print('instr_list does not match settings')
+        self.set_sweep_param(sweep_param1=sweep_param1, sweep_param2=sweep_param2)
 
 
     def save_settings(self, fileName='instr_settings', path=None, counter=None):
-    	if not path:
+        if not path:
             path = self.path
         if not counter:
-        	counter = self.counter
+            counter = self.counter
         path = path + '\\' + str(counter)
         self.instr_list.save_settings(path, fileName=fileName)
 
     def get_sense_instr(self, i):
-    	for k in self.instr_list.keys():
-    		if 'sense' in k and str(i) in k:
-    			return self.instr_list[k]
+        if self.numofsense==1:
+            for k in self.instr_list.instr_list.keys():
+                if 'sense' in k:
+                    return self.instr_list.instr_list[k]
+        else:
+            for k in self.instr_list.instr_list.keys():
+                if 'sense' in k and str(i) in k:
+                    return self.instr_list.instr_list[k]
 
     def get_bias_instr(self, i):
-    	for k in self.instr_list.keys():
-    		if 'bias' in k and str(i) in k:
-    			return self.instr_list[k]
+        for k in self.instr_list.instr_list.keys():
+            if 'bias' in k and str(i) in k:
+                return self.instr_list.instr_list[k]
 
-    def get_sweep_instr(self):
-    	for k in self.instr_list.keys():
-    		if 'sweep' in k:
-    			return self.instr_list[k]
+    def get_sweep_instr(self, i):
+        for k in self.instr_list.instr_list.keys():
+            if 'sweep' in k and str(i) in k:
+                return self.instr_list.instr_list[k]
 
     def sense(self, i):
-    	instr = self.get_sense_instr(i)
-    	return instr.read_val()
+        instr = self.get_sense_instr(i)
+        return instr.read_val()
+
+    def update_sweep(self, i):
+        self.rt_x = self.sweep_param1[:i%len(self.sweep_param1)+1]
+        self.rt_y = self.sweep_param2[:i//len(self.sweep_param1)+1]
+        self.get_sweep_instr(1).write_val(self.sweep_param1[i%len(self.sweep_param1)])
+        self.get_sweep_instr(2).write_val(self.sweep_param2[i//len(self.sweep_param1)])
 
     def update_sense(self, i, save_data=True):
         r, c = i//len(self.sweep_param1), i%len(self.sweep_param1)
@@ -299,12 +320,12 @@ class TwoDMeas(TwoDSweeper):
         self.update_log(log_info)
 
 
-    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, instrs=None, settings=None):
+    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, instrs=None):
         self.write_path()
         util.check_dir(str(self.counter))
         if instrs is not None:
-        	self.set_instr_list(instrs)
-        self.write_settings(settings=settings)
+            self.set_instr_list(instrs)
+        self.write_settings()
         self.init_axes(fig=fig, axes=axes)
         self.update_axes()
         if save_data:
@@ -312,5 +333,15 @@ class TwoDMeas(TwoDSweeper):
             self.save_ydata()
             self.save_settings()
         self.on()
-        self.ani = animation.FuncAnimation(self.fig, self.update_data, frames=len(self.sweep_param), repeat=False, init_func=self.init_func, blit=False, fargs=(save_data,save_plot,))
-        plt.show(block=True)	
+        self.ani = animation.FuncAnimation(self.fig, self.update_data, frames=len(self.sweep_param1)*len(self.sweep_param2), repeat=False, init_func=self.init_func, blit=False, fargs=(save_data,save_plot,))
+        plt.show(block=True)      
+
+    def on(self):
+        for k in self.instr_list.instr_list.keys():
+            if 'sweep' in k or 'bias' in k or 'sense' in k:
+                self.instr_list.instr_list[k].on()
+
+    def off(self):
+        for k in self.instr_list.instr_list.keys():
+            if 'sweep' in k or 'bias' in k or 'sense' in k:
+                self.instr_list.instr_list[k].off()

@@ -14,9 +14,12 @@ class base_instrument():
     def __init__(self, device, name='base_instr', func='example', mode='', unit=''):
         self.name = name
         self.device = device
-        self.set_func(func)
-        self.set_mode(mode)
-        self.set_unit(unit)
+        self.func = func
+        self.mode = mode
+        self.unit = unit
+        self.set_func(func=func)
+        self.set_mode(mode=mode)
+        self.set_unit(unit=unit)
         self.off()
 
     def set_func(self, func=None):
@@ -72,8 +75,8 @@ class instr_list():
         with open(path+'//{}.csv'.format(fileName), 'w') as f:
             writer = csv.writer(f)
             for instr in self.instr_list.values():
-                writer.writerow(instr.get_settings.keys())
-                writer.writerow(instr.get_settings.values())
+                writer.writerow(instr.get_settings().keys())
+                writer.writerow(instr.get_settings().values())
 
 class base_measurement():
 

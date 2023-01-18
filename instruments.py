@@ -2,16 +2,16 @@ from Res_Meas.base_module import base_instrument
 
 class DMM(base_instrument):
 	def __init__(self, device, name='DMM', func='sense', mode='voltage', unit='V', avgs=None, maxim=None):
-        super().__init__(device, name=name, func=func, mode=mode, unit=unit)
-        self.set_avgs(avgs)
-        self.set_maxim(maxim)
+		super().__init__(device, name=name, func=func, mode=mode, unit=unit)
+		self.set_avgs(avgs)
+		self.set_maxim(maxim)
 
-    def set_unit(self, unit=None):
-        super().set_unit()
-        #factor=instr unit/device unit
-        #dmm device unit defaults are usually Amp and Volt
-        #Make sure to change it if your device has different default units
-        if self.unit == 'A' or self.unit == 'V':
+	def set_unit(self, unit=None):
+		super().set_unit()
+		#factor=instr unit/device unit
+		#dmm device unit defaults are usually Amp and Volt
+		#Make sure to change it if your device has different default units
+		if self.unit == 'A' or self.unit == 'V':
 			self.factor = 1
 		if self.unit == 'mA' or self.unit == 'mV':
 			self.factor = 1e-3
@@ -34,16 +34,16 @@ class DMM(base_instrument):
 		else:
 			self.maxim = maxim*self.factor
 
-    def get_settings(self):
-        return self.__dict__.copy()
+	def get_settings(self):
+		return self.__dict__.copy()
 
 class Keithley_DMM(DMM):
 	def __init__(self, device, name='Keithley6500', func='sense', mode='dc voltage', unit='V', avgs=None, maxim=None):
-        super().__init__(device, name=name, func=func, mode=mode, unit=unit, avgs=avgs, maxim=maxim)
+		super().__init__(device, name=name, func=func, mode=mode, unit=unit, avgs=avgs, maxim=maxim)
 
 
-    def set_mode(self, mode=None):
-    	#"ac current": "CURR:AC",
+	def set_mode(self, mode=None):
+		#"ac current": "CURR:AC",
 		#"dc current": "CURR:DC",
 		#"ac voltage": "VOLT:AC",
 		#"dc voltage": "VOLT:DC",
@@ -51,8 +51,8 @@ class Keithley_DMM(DMM):
 		#"4w resistance": "FRES",
 		#"temperature": "TEMP",
 		#"frequency": "FREQ",
-    	super().set_mode(mode)
-    	self.device.mode(self.mode)
+		super().set_mode(mode)
+		self.device.mode(self.mode)
 
 	def set_avgs(self, avgs=None):
 		if avgs is None:
@@ -70,7 +70,7 @@ class Keithley_DMM(DMM):
 			self.maxim = maxim
 			self.device.range(self.maxim*self.factor)
 
-    def read_val(self):
+	def read_val(self):
 		return self.device.amplitude()/self.factor
 
 
@@ -78,11 +78,11 @@ class Keithley_DMM(DMM):
 # Double check with driver 
 class Keithley_Sense(DMM):
 	def __init__(self, device, name='Keithley2450', func='sense', mode='current', unit='A', avgs=None, maxim=None):
-        super().__init__(device, name, func, mode, unit, avgs, maxim)
+		super().__init__(device, name=name, func=func, mode=mode, unit=unit, avgs=avgs, maxim=maxim)
 
 
-    def set_mode(self, mode=None):
-    	#"ac current": "CURR:AC",
+	def set_mode(self, mode=None):
+		#"ac current": "CURR:AC",
 		#"dc current": "CURR:DC",
 		#"ac voltage": "VOLT:AC",
 		#"dc voltage": "VOLT:DC",
@@ -90,8 +90,8 @@ class Keithley_Sense(DMM):
 		#"4w resistance": "FRES",
 		#"temperature": "TEMP",
 		#"frequency": "FREQ",
-    	super().set_mode(mode)
-    	self.device.sense_function(mode)
+		super().set_mode(mode)
+		self.device.sense_function(mode)
 
 	def set_avgs(self, avgs=None):
 		if avgs is None:
@@ -109,8 +109,8 @@ class Keithley_Sense(DMM):
 			self.maxim = maxim
 			self.device.sense.range(self.maxim*self.factor)
 
-    def read_val(self):
-    	if self.mode == 'current':
+	def read_val(self):
+		if self.mode == 'current':
 			return self.sense.current()/self.factor
 		if self.mode == 'voltage':
 			return self.sense.voltage()/self.factor
@@ -125,15 +125,15 @@ class Keithley_Sense(DMM):
 
 class source_unit(base_instrument):
 	def __init__(self, device, name='source_unit', func='sweep', mode='voltage', unit='V', maxim=None):
-        super().__init__(device, name=name, func=func, mode=mode, unit=unit)
-        self.set_maxim(maxim)
+		super().__init__(device, name=name, func=func, mode=mode, unit=unit)
+		self.set_maxim(maxim)
 
-    def set_unit(self, unit=None):
-        super().set_unit()
-        #factor=instr unit/device unit
-        #dmm device unit defaults are usually Amp and Volt
-        #Make sure to change it if your device has different default units
-        if self.unit == 'A' or self.unit == 'V':
+	def set_unit(self, unit=None):
+		super().set_unit()
+		#factor=instr unit/device unit
+		#dmm device unit defaults are usually Amp and Volt
+		#Make sure to change it if your device has different default units
+		if self.unit == 'A' or self.unit == 'V':
 			self.factor = 1
 		if self.unit == 'mA' or self.unit == 'mV':
 			self.factor = 1e-3
@@ -150,28 +150,28 @@ class source_unit(base_instrument):
 		else:
 			self.maxim = maxim
 
-    def get_settings(self):
-    	settings = self.__dict__.copy()
-    	if 'sweep' in self.func:
-    		return settings
-        elif 'bias' in self.func:
-        	settings['val'] = self.write_val()
-        	return settings
+	def get_settings(self):
+		settings = self.__dict__.copy()
+		if 'sweep' in self.func:
+			return settings
+		elif 'bias' in self.func:
+			settings['val'] = self.write_val()
+			return settings
 
-    def write_val(self, val=None):
-    	return val
+	def write_val(self, val=None):
+		return val
 
 
 class Yokogawa(source_unit):
 	def __init__(self, device, name='yokogawa', func='sweep', mode='VOLT', unit='V', maxim=None):
-        super().__init__(device, name=name, func=func, mode=mode, unit=unit, maxim=maxim)
+		super().__init__(device, name=name, func=func, mode=mode, unit=unit, maxim=maxim)
 
-    def set_unit(self, unit=None):
-        super().set_unit()
-        #factor=instr unit/device unit
-        #dmm device unit defaults are usually Amp and Volt
-        #Make sure to change it if your device has different default units
-        if self.unit == 'A' or self.unit == 'V':
+	def set_unit(self, unit=None):
+		super().set_unit()
+		#factor=instr unit/device unit
+		#dmm device unit defaults are usually Amp and Volt
+		#Make sure to change it if your device has different default units
+		if self.unit == 'A' or self.unit == 'V':
 			self.factor = 1
 		if self.unit == 'mA' or self.unit == 'mV':
 			self.factor = 1e-3
@@ -181,10 +181,10 @@ class Yokogawa(source_unit):
 			self.factor = 1e-9
     
 
-    def set_mode(self, mode=None):
-    	#'VOLT' or 'CURR'
-    	super().set_mode(mode)
-    	self.device.source_mode(mode)
+	def set_mode(self, mode=None):
+		#'VOLT' or 'CURR'
+		super().set_mode(mode)
+		self.device.source_mode(mode)
 
 
 	def set_maxim(self, maxim=None):
@@ -202,33 +202,33 @@ class Yokogawa(source_unit):
 				self.device.current_range(self.maxim)			
 
 
-    def write_val(self, val=None):
-    	if self.mode == 'VOLT':
-    		if val is None:
-    			return self.device.voltage()
-    		else:
-    			self.device.voltage(val*self.factor)
-    	if self.mode == 'CURR':
-    		if val is None:
-    			return self.device.current()
-    		else:
-    			self.device.current(val*self.factor)
+	def write_val(self, val=None):
+		if self.mode == 'VOLT':
+			if val is None:
+				return self.device.voltage()
+			else:
+				self.device.voltage(val*self.factor)
+		if self.mode == 'CURR':
+			if val is None:
+				return self.device.current()
+			else:
+				self.device.current(val*self.factor)
 
-    def on(self):
-    	self.device.ouput(1)
+	def on(self):
+		self.device.output('on')
 
-    def off(self):
-    	self.device.output(0)
+	def off(self):
+		self.device.output('off')
 
 
 
 class Keithley_Source(source_unit):
 	def __init__(self, device, name='Keithley2450', func='bias', mode='voltage', unit='V', avgs=None, maxim=None):
-        super().__init__(device, name, func, mode, unit, avgs, maxim)
+		super().__init__(device, name=name, func=func, mode=mode, unit=unit, maxim=maxim)
 
 
-    def set_mode(self, mode=None):
-    	#"ac current": "CURR:AC",
+	def set_mode(self, mode=None):
+		#"ac current": "CURR:AC",
 		#"dc current": "CURR:DC",
 		#"ac voltage": "VOLT:AC",
 		#"dc voltage": "VOLT:DC",
@@ -236,8 +236,8 @@ class Keithley_Source(source_unit):
 		#"4w resistance": "FRES",
 		#"temperature": "TEMP",
 		#"frequency": "FREQ",
-    	super().set_mode(mode)
-    	self.device.source_function(mode)
+		super().set_mode(mode)
+		self.device.source_function(mode)
 
 
 	def set_maxim(self, maxim=None):
@@ -248,17 +248,17 @@ class Keithley_Source(source_unit):
 			self.maxim = maxim
 			self.device.source.range(self.maxim*self.factor)
 
-    def write_val(self, val=None):
-    	if self.mode == 'VOLT':
-    		if val is None:
-    			return self.device.source.voltage()
-    		else:
-    			self.device.source.voltage(val*self.factor)
-    	if self.mode == 'CURR':
-    		if val is None:
-    			return self.device.source.current()
-    		else:
-    			self.device.source.current(val*self.factor)
+	def write_val(self, val=None):
+		if self.mode == 'voltage':
+			if val is None:
+				return self.device.source.voltage()
+			else:
+				self.device.source.voltage(val*self.factor)
+		if self.mode == 'current':
+			if val is None:
+				return self.device.source.current()
+			else:
+				self.device.source.current(val*self.factor)
 
 	def on(self):
 		self.device.output_enabled(1)
