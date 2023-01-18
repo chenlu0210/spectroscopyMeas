@@ -1,7 +1,8 @@
 import os
 import csv
 import numpy as np
-from Res_Meas import utilities as util
+#from Res_Meas import utilities as util
+from spectroscopyMeas import utilities as util
 from matplotlib import animation
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -149,9 +150,6 @@ class base_measurement():
     def mark(self, id=None, message=''):
         if not id:
             id = str(self.get_id())
-        
- #       if not message:
- #           message = ''
         if id in self.markers:
             if len(self.markers[id])!=0:
                 self.markers[id] = self.markers[id] + '_' + message
@@ -246,19 +244,44 @@ class OneDSweeper(base_measurement):
         else:
             self.numofsense = numofsense
 
-    def set_sweep_param(self, sweep_param=None):
+    def set_sweep_param(self, sweep_param=None, key='sweep_param'):
+        self.sweep_param = {key: None}
         if sweep_param is None:
-            self.sweep_param = range(10)
+            self.sweep_param[key] = range(10)
         else:
-            self.sweep_param = sweep_param
+            self.sweep_param[key] = sweep_param
+        self.set_frames()
 
-    def init_data_holders(self):
-        self.sense_data = []
+    def set_frames(self):
+        self.f = len(self.get_sweep_param()[0])
+
+    def get_sweep_param(self):
+        return tuple(self.sweep_param.values())
+
+    def get_sweep_keys(self):
+        return tuple(self.sweep_param.keys())
+
+    def get_sense_data(self):
+        return tuple(self.sense_data.values())
+
+    def get_sense_keys(self):
+        return tuple(self.sense_data.keys())
+
+    def init_data_holders(self, sense_keys=None):
+        self.sense_data = {}
         self.rt_x = []
-        for i in range(self.numofsense):
-            self.sense_data.append(np.zeros(len(self.sweep_param)))
-            # create a new data holder with the same length of sweep_param
+        if sense_keys is None:
+            for i in range(self.numofsense):
+                self.sense_data['sense{}'.format(i+1)] = np.zeros(self.f)
+        else:
+            try:
+                for k in sense_keys:
+                    self.sense_data[k] = np.zeros(self.f)
+            except IndexError:
+                print('Index of sense_keys do not match the number of sense parameters')
 
+
+            # create a new data holder with the same length of sweep_param
 
     def init_axes(self, fig=None, axes=None):
         if fig is None and axes is None:
@@ -271,50 +294,55 @@ class OneDSweeper(base_measurement):
             self.axes = axes
 
     def update_axes(self):
+        sweep_key, = self.get_sweep_keys()
+        sense_keys = self.get_sense_keys()
         i = 0
         last = len(self.axes)
         for ax in self.axes:
-            i += 1
-            ax.set_xlabel('X')
-            ax.set_ylabel('Sense{}'.format(i))
+            ax.set_xlabel(sweep_key)
+            ax.set_ylabel(sense_keys[i])
+            i+=1
         self.fig.suptitle('Trace Live Plot')     
 
 
-    def save_xdata(self, fileName='sweep_param', path=None, counter=None):
+    def save_xdata(self, path=None, counter=None):
+        sweep_param, = self.get_sweep_param()
+        sweep_key, = self.get_sweep_keys()
         if not path:
             path = self.path
         if not counter:
             counter = self.counter
         path = path + '\\' + str(counter) 
-        np.savetxt(path+"\\{}.txt".format(fileName), self.sweep_param)
+        np.savetxt(path+"\\{}.txt".format(sweep_key), sweep_param)
 
-    def save_zdata(self, fileName='sense_param', path=None, counter=None):
+    def save_zdata(self, path=None, counter=None):
         if not path:
             path = self.path
         if not counter:
             counter = self.counter
         path = path + '\\' + str(counter)
         i = 0
-        for data in self.sense_data:
-            i+=1
-            np.savetxt(path+"\\{}{}.txt".format(fileName,i), data)
+        sense_data, sense_keys = self.get_sense_data(), self.get_sense_keys()
+        for data in sense_data:
+            np.savetxt(path+"\\{}.txt".format(sense_keys[i]), data)
+            i += 1
 
     def update_sweep(self, i):
-        self.rt_x = self.sweep_param[:i+1]
+        self.rt_x = self.get_sweep_param()[0][:i+1]
 
     def update_sense(self, i, save_data=True):
         for j in range(self.numofsense):
-            self.sense_data[j][i] = self.sweep_param[i]
+            self.get_sense_data()[j][i] = self.get_sweep_param()[0][i]
         if save_data:
             self.save_zdata()
 
     def update_plot(self, i, save_plot=True, figName='TracePlot'):
         lines = []
         for j in range(self.numofsense):
-            lines.append(self.axes[j].plot(self.rt_x, self.sense_data[j][:i+1], label='{}'.format(i)))
+            lines.append(self.axes[j].plot(self.rt_x, self.get_sense_data()[j][:i+1], label='{}'.format(i)))
             #self.axes[j].legend()
 
-        if i == len(self.sweep_param) - 1:
+        if i == self.f - 1:
             path = self.path + '\\' + str(self.counter)
             if save_plot:
                 self.fig.savefig(path+'\\{}.pdf'.format(figName))
@@ -325,12 +353,19 @@ class OneDSweeper(base_measurement):
         self.update_sweep(i)
         self.update_sense(i, save_data=save_data)
         lines = self.update_plot(i, save_plot=save_plot)
-        if i == len(self.sweep_param) - 1:
+        if i == self.f - 1:
             self.end_func()
         return lines
 
 
-    def init_func(self): 
+    def init_func(self, fig=None, axes=None, save_data=True): 
+        self.write_path()
+        util.check_dir(str(self.counter))
+        self.init_axes(fig=fig, axes=axes)
+        self.update_axes()
+        self.set_frames()
+        if save_data:
+            self.save_xdata()
         self.rt_x = []
         self.init_data_holders()
         self.start_time = time.time()
@@ -343,19 +378,20 @@ class OneDSweeper(base_measurement):
         self.update_log(log_info)
 
     def mark(self, id=None, message=None):
+        sweep_param, = self.get_sweep_param()
         if message is None:
-            message = '{:2f}to{:2f}in{}steps'.format(np.min(self.sweep_param),np.max(self.sweep_param),len(self.sweep_param))
-        super().mark(id, message)
+            message = '{:2f}to{:2f}in{}steps'.format(np.min(sweep_param),np.max(sweep_param),self.f)
+        super().mark(id=id, message=message)
+
 
 
     def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True):
-        self.write_path()
-        util.check_dir(str(self.counter))
-        self.init_axes(fig=fig, axes=axes)
-        self.update_axes()
-        if save_data:
-            self.save_xdata()
-        self.ani = animation.FuncAnimation(self.fig, self.update_data, frames=len(self.sweep_param), repeat=False, init_func=self.init_func, blit=False, fargs=(save_data,save_plot,))
+        self.init_func(fig=fig, axes=axes, save_data=True)
+        for i in range(self.f):
+            self.update_data(i, save_data=True, save_plot=True)
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
+            time.sleep(0.1)
         plt.show(block=True)
 
 
@@ -377,23 +413,36 @@ class TwoDSweeper(OneDSweeper):
         self.init_data_holders()
 
 
-    def set_sweep_param(self, sweep_param1=None, sweep_param2=None):
+    def set_sweep_param(self, sweep_param1=None, sweep_param2=None, keys=None):
         if sweep_param1 is None:
-            self.sweep_param1 = range(10)
-        else:
-            self.sweep_param1 = sweep_param1
+            sweep_param1 = range(10)
         if sweep_param2 is None:
-            self.sweep_param2 = range(10)
-        else:
-            self.sweep_param2 = sweep_param2       
+            sweep_param2 = range(10)
+        self.sweep_param = {}
+        if keys is None:
+            self.sweep_param['sweep_param1'] = sweep_param1
+            self.sweep_param['sweep_param2'] = sweep_param2
+        self.set_frames()
 
-    def init_data_holders(self):
-        self.sense_data = []
+    def set_frames(self):
+        self.f = len(self.get_sweep_param()[0])*len(self.get_sweep_param()[1])
+        self.cols = len(self.get_sweep_param()[0])
+
+
+    def init_data_holders(self, sense_keys=None):
+        self.sense_data = {}
         self.rt_x = []
         self.rt_y = []
-        for i in range(self.numofsense):
-            self.sense_data.append(np.zeros((len(self.sweep_param2), len(self.sweep_param1))))
-            # create a new data holder with the same length of sweep_param
+        sweep_param1, sweep_param2 = self.get_sweep_param()
+        if sense_keys is None:
+            for i in range(self.numofsense):
+                self.sense_data['sense{}'.format(i+1)] = np.zeros((len(sweep_param2), len(sweep_param1)))
+        else:
+            try:
+                for k in sense_keys:
+                    self.sense_data[k] = np.zeros((len(sweep_param2), len(sweep_param1)))
+            except IndexError:
+                print('Index of sense_keys do not match the number of sense parameters')
 
 
     def init_axes(self, fig=None, axes=None):
@@ -417,21 +466,22 @@ class TwoDSweeper(OneDSweeper):
             if i == 2:
                 ax.set_title('Color Map')
             if i%2 == 1:
-                ax.set_xlabel('sweep_param1')
-                ax.set_ylabel('Sense{}'.format(i//2+1))
+                ax.set_xlabel(self.get_sweep_keys()[0])
+                ax.set_ylabel(self.get_sense_keys()[i//2])
             if i%2 == 0:
-                ax.set_xlabel('sweep_param1')
-                ax.set_ylabel('sweep_param2')
+                ax.set_xlabel(self.get_sweep_keys()[0])
+                ax.set_ylabel(self.get_sweep_keys()[1])
                 #ax.set_ylabel('Sense{}'.format(i//2))   
 
 
-    def save_xdata(self, fileName='sweep_param1', path=None, counter=None):
+    def save_xdata(self, path=None, counter=None):
         if not path:
             path = self.path
         if not counter:
             counter = self.counter
         path = path + '\\' + str(counter) 
-        np.savetxt(path+"\\{}.txt".format(fileName), self.sweep_param1)
+        np.savetxt(path+"\\{}.txt".format(self.get_sweep_keys()[0]), self.get_sweep_param()[0])
+
 
     def save_ydata(self, fileName='sweep_param2', path=None, counter=None):
         if not path:
@@ -439,68 +489,44 @@ class TwoDSweeper(OneDSweeper):
         if not counter:
             counter = self.counter
         path = path + '\\' + str(counter) 
-        np.savetxt(path+"\\{}.txt".format(fileName), self.sweep_param2)
+        np.savetxt(path+"\\{}.txt".format(self.get_sweep_keys()[1]), self.get_sweep_param()[1])
 
-    def save_zdata(self, fileName='sense_param', path=None, counter=None):
-        if not path:
-            path = self.path
-        if not counter:
-            counter = self.counter
-        path = path + '\\' + str(counter)
-        i = 0
-        for data in self.sense_data:
-            i+=1
-            np.savetxt(path+"\\{}{}.txt".format(fileName,i), data)
+
 
     def update_sweep(self, i):
-        self.rt_x = self.sweep_param1[:i%len(self.sweep_param1)+1]
-        self.rt_y = self.sweep_param2[:i//len(self.sweep_param1)+1]
+        self.rt_x = self.get_sweep_param()[0][:i%self.cols+1]
+        self.rt_y = self.get_sweep_param()[1][:i//self.cols+1]
 
     def update_sense(self, i, save_data=True):
-        r, c = i//len(self.sweep_param1), i%len(self.sweep_param1)
+        r, c = i//self.cols, i%self.cols
         for j in range(self.numofsense):
-            self.sense_data[j][r][c] = r*self.sweep_param1[c]
+            self.get_sense_data()[j][r][c] = r*self.get_sweep_param()[0][c]
         if save_data:
             self.save_zdata()
 
     def update_plot(self, i, save_plot=True, figName='Sweep'):
         lines = []
         cmaps = []
-        r, c = i//len(self.sweep_param1), i%len(self.sweep_param1)
+        caxes = []
+        r, c = i//self.cols, i%self.cols
         for j in range(self.numofsense):
-            lines.append(self.axes[2*j].plot(self.rt_x, self.sense_data[j][r,:c+1], label='{}'.format(i)))
-            if (i+1)%len(self.sweep_param1) == 0:
-                im = self.axes[2*j+1].pcolormesh(self.sweep_param1, self.rt_y, self.sense_data[j][:r+1, :])
-                #self.axes[2*j+1].colorbar()
+            lines.append(self.axes[2*j].plot(self.rt_x, self.get_sense_data()[j][r,:c+1], label='{}'.format(i)))
+            if (i+1)%self.cols == 0:
+                im = self.axes[2*j+1].pcolormesh(self.get_sweep_param()[0], self.rt_y, self.get_sense_data()[j][:r+1, :])
                 cmaps.append(im)
 
             #self.axes[j].legend()
 
-        if i == len(self.sweep_param1)*len(self.sweep_param2) - 1:
-            for im in cmaps:
-                self.fig.colorbar(im)
+        if i == self.f - 1:
+            for k in range(self.numofsense):
+                self.fig.colorbar(cmaps[k], ax = self.axes[2*k+1])
             path = self.path + '\\' + str(self.counter)
             if save_plot:
                 self.fig.savefig(path+'\\{}.pdf'.format(figName))
 
         return tuple(lines+cmaps)
 
-    def update_data(self, i, save_data=True, save_plot=True):
-        self.update_sweep(i)
-        self.update_sense(i, save_data=save_data)
-        lines = self.update_plot(i, save_plot=save_plot)
-        if i == len(self.sweep_param1)*len(self.sweep_param2) - 1:
-            self.end_func()
-        return lines
-
-
-    def mark(self, id=None, message=None):
-        if message is None:
-            message = '{:2f}to{:2f}in{}steps_{:2f}to{:2f}in{}steps'.format(np.min(self.sweep_param1),np.max(self.sweep_param1),len(self.sweep_param1),np.min(self.sweep_param2),np.max(self.sweep_param2),len(self.sweep_param2))
-        super().mark(id, message)
-
-
-    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True):
+    def init_func(self, fig=None, axes=None, save_data=True): 
         self.write_path()
         util.check_dir(str(self.counter))
         self.init_axes(fig=fig, axes=axes)
@@ -508,7 +534,22 @@ class TwoDSweeper(OneDSweeper):
         if save_data:
             self.save_xdata()
             self.save_ydata()
-        self.ani = animation.FuncAnimation(self.fig, self.update_data, frames=len(self.sweep_param1)*len(self.sweep_param2), repeat=False, init_func=self.init_func, blit=False, fargs=(save_data,save_plot,))
-        plt.show(block=True)    
+        self.rt_x = []
+        self.init_data_holders()
+        self.start_time = time.time()
 
+    def mark(self, id=None, message=None):
+        sweep_param1, sweep_param2 = self.get_sweep_param()
+        if message is None:
+            message = '{:2f}to{:2f}in{}steps_{:2f}to{:2f}in{}steps'.format(np.min(sweep_param1),np.max(sweep_param1),self.cols,np.min(sweep_param2),np.max(sweep_param2),len(sweep_param2))
+        super(OneDSweeper, self).mark(id=id, message=message)
+   
 
+    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True):
+        self.init_func(fig=fig, axes=axes, save_data=True)
+        for i in range(self.f):
+            self.update_data(i, save_data=True, save_plot=True)
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
+            time.sleep(0.1)
+        plt.show(block=True)

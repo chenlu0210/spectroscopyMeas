@@ -146,51 +146,6 @@ class OneDMeas(OneDSweeper):
         if save_data:
             self.save_zdata()
 
-    # def update_plot(self, i, save_plot=True, figName='TracePlot'):
-    #     lines = []
-    #     for j in range(self.numofsense):
-    #         lines.append(self.axes[j].plot(self.rt_x, self.sense_data[j][:i+1], label='{}'.format(i)))
-    #         #self.axes[j].legend()
-
-    #     if i == len(self.sweep_param) - 1:
-    #         path = self.path + '\\' + str(self.counter)
-    #         if save_plot:
-    #             self.fig.savefig(path+'\\{}.pdf'.format(figName))
-
-    #     return tuple(lines)
-
-    # def update_data(self, i, save_data=True, save_plot=True):
-    #     self.update_sweep(i)
-    #     self.update_sense(i, save_data=save_data)
-    #     lines = self.update_plot(i, save_plot=save_plot)
-    #     if i == len(self.sweep_param) - 1:
-    #         self.end_func()
-    #     return lines
-
-
-    def end_func(self):
-        self.end_time = time.time()
-        self.off()
-        self.update_id()
-        self.mark()
-        log_info = [self.date, str(self.get_id()), self.markers[str(self.get_id())]]
-        self.update_log(log_info)
-
-    # def mark(self, id=None, message=None):
-    #     if message is None:
-    #         message = '{:2f}to{:2f}in{}steps'.format(np.min(self.sweep_param),np.max(self.sweep_param),len(self.sweep_param))
-    #     super().mark(id, message)
-
-
-    # def init_axes(self, fig=None, axes=None):
-    #     if fig is None and axes is None:
-    #         self.fig = plt.figure()
-    #         self.axes = []
-    #         for i in range(self.numofsense):
-    #             self.axes.append(self.fig.add_subplot(self.numofsense,1,i+1))
-    #     else:
-    #         self.fig = fig
-    #         self.axes = axes
 
     def update_axes(self):
         sweep_key, = self.get_sweep_keys()
@@ -204,24 +159,6 @@ class OneDMeas(OneDSweeper):
         self.fig.suptitle('Trace Live Plot')
 
 
-    # def save_xdata(self, fileName='sweep_param', path=None, counter=None):
-    #     if not path:
-    #         path = self.path
-    #     if not counter:
-    #         counter = self.counter
-    #     path = path + '\\' + str(counter) 
-    #     np.savetxt(path+"\\{}.txt".format(fileName), self.sweep_param)
-
-    # def save_zdata(self, fileName='sense_param', path=None, counter=None):
-    #     if not path:
-    #         path = self.path
-    #     if not counter:
-    #         counter = self.counter
-    #     path = path + '\\' + str(counter)
-    #     i = 0
-    #     for data in self.sense_data:
-    #         i+=1
-    #         np.savetxt(path+"\\{}{}.txt".format(fileName,i), data)
     def on(self):
         for k in self.instr_list.instr_list.keys():
             if 'sweep' in k or 'bias' in k or 'sense' in k:
@@ -232,19 +169,9 @@ class OneDMeas(OneDSweeper):
             if 'sweep' in k or 'bias' in k or 'sense' in k:
                 self.instr_list.instr_list[k].off()
 
-    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True):
-        self.write_path()
-        util.check_dir(str(self.counter))
-        self.write_settings()
-        self.init_axes(fig=fig, axes=axes)
-        self.update_axes()
-        if save_data:
-            self.save_xdata()
-            self.save_settings()
+    def init_func(self, fig=None, axes=None, save_data=True): 
+        super().init_func(fig=fig, axes=axes, save_data=save_data)
         self.on()
-        self.ani = animation.FuncAnimation(self.fig, self.update_data, frames=self.f, repeat=False, init_func=self.init_func, blit=False, fargs=(save_data,save_plot,))
-        plt.show(block=True)
-
 
 
 class TwoDMeas(TwoDSweeper, OneDMeas):
@@ -252,7 +179,7 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
     name = 'TwoDMeas'
 
     def __init__(self, parent_dir, date, instrs, settings=None):
-        super(OneDMeas, self).__init__(parent_dir, date, date, instrs, settings=settings)
+        OneDMeas.__init__(parent_dir, date, date, instrs, settings=settings)
 
 
     def set_sweeper(self):
@@ -293,7 +220,7 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
 
 
     def update_sweep(self, i):
-        super(TwoDSweeper, self).update_sweep(i)
+        super().update_sweep(i)
         self.get_sweep_instr(0).write_val(self.rt_x[i%len(self.cols)])
         self.get_sweep_instr(1).write_val(self.rt_y[i//len(self.cols)])
 
@@ -304,19 +231,6 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
         if save_data:
             self.save_zdata()
 
-
-
-
-    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True):
-        self.write_path()
-        util.check_dir(str(self.counter))
-        self.write_settings()
-        self.init_axes(fig=fig, axes=axes)
-        self.update_axes()
-        if save_data:
-            self.save_xdata()
-            self.save_ydata()
-            self.save_settings()
+    def init_func(self, fig=None, axes=None, save_data=True): 
+        super().init_func(fig=fig, axes=axes, save_data=save_data)
         self.on()
-        self.ani = animation.FuncAnimation(self.fig, self.update_data, frames=self.f, repeat=False, init_func=self.init_func, blit=False, fargs=(save_data,save_plot,))
-        plt.show(block=True)
