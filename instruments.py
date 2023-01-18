@@ -1,4 +1,4 @@
-from Res_Meas.base_module import base_instrument
+from spectroscopyMeas.base_module import base_instrument
 
 class DMM(base_instrument):
 	def __init__(self, device, name='DMM', func='sense', mode='voltage', unit='V', avgs=None, maxim=None):
