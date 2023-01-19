@@ -16,14 +16,13 @@ class OneDMeas(OneDSweeper):
     name = 'OneDMeas'
 
     def __init__(self, parent_dir, date, instrs, settings=None, name=None):
-        super(OneDSweeper, self).__init__(parent_dir, date, name=name)
+        super().__init__(parent_dir, date, name=name)
 
         self.set_instr_list(instrs = instrs, settings=settings)
 
 
     def set_instr_list(self, instrs, settings=None):
         self.instr_list = instr_list(instrs)
-        self.set_sweeper()
         self.set_settings(settings=settings)
 
     def set_sweeper(self):
@@ -39,19 +38,17 @@ class OneDMeas(OneDSweeper):
                 sense_keys.append(k)
         self.numofsense = numofsense
         self.numofbias = numofbias
-        self.init_data_holders(sense_keys=sense_keys)
-
+        print(sense_keys)
+        self.init_data_holders(sense_keys)
 
     def add_instr(self, instr, val=None):
         self.instr_list.add_instr(instr)
-        self.set_sweeper()
         self.update_settings(instr, val=val)
 
 
     def delete_instr(self, instr):
         if instr in self.instr_list.instr_list.values():
             self.instr_list.pop(instr)
-            self.set_sweeper()
             self.update_settings(instr, mode='delete')
         else:
             print('instr not present in instr_list')
@@ -65,8 +62,8 @@ class OneDMeas(OneDSweeper):
                 self.settings.pop(instr.func)
             instr.set_func(func=func)
             self.instr_list.add_instr(instr)
-            self.set_sweeper()
-            self.update_settings(instr, val=val)		
+            self.update_settings(instr, val=val)
+            	
 
     def set_settings(self, settings=None):
         if settings is None:
@@ -75,6 +72,7 @@ class OneDMeas(OneDSweeper):
         else:
             self.settings = settings
         self.write_settings()
+        
 
     def create_empty_settings(self):
         settings = {}
@@ -86,8 +84,11 @@ class OneDMeas(OneDSweeper):
     def update_settings(self, instr, val=None, mode='modify'):
         if mode == 'modify':
             if instr in self.instr_list.instr_list.values():
-                if not instr.func in self.settings.keys() and 'sense' not in instr.func:
-                    print('new instr added to the settings')
+                if 'sense' not in instr.func:
+                    if not instr.func in self.settings.keys():
+                        print('new key added to the settings')
+                    else:
+                        print('value has been updated')
                     self.settings[instr.func] = val
             else:
                 print('This instrument is not in your instr_list. Make sure to add it first.')
@@ -95,19 +96,24 @@ class OneDMeas(OneDSweeper):
             if instr.func in self.settings.keys():
                 self.settings.pop(instr.func)
             print('instr deleted from the settings')
-        self.write_settings()	
+        self.write_settings()
 
 
     def write_settings(self):
+        self.sweep_param = {}
         for k in self.settings.keys():
             if 'sweep' in k:
-                self.sweep_param[k] = self.settings[k]
+                if self.settings[k] is None:
+                    self.sweep_param[k] = np.linspace(1,9,9)*1e-3
+                else:
+                    self.sweep_param[k] = self.settings[k]
             if 'bias' in k:
                 try:
                     self.instr_list.instr_list[k].write_val(self.settings[k])
                 except KeyError:
                     print('instr_list does not match settings')
         self.set_frames()
+        self.set_sweeper()
 
 
     def save_settings(self, fileName='instr_settings', path=None, counter=None):
@@ -129,8 +135,8 @@ class OneDMeas(OneDSweeper):
                 bias_instrs.append(self.instr_list.instr_list[k])
         return bias_instrs[i]
 
-    def get_sweep_instr(self):
-        keys = self.get_sense_keys()
+    def get_sweep_instr(self, i):
+        keys = self.get_sweep_keys()
         return self.instr_list.instr_list[keys[i]]
 
     def sense(self, i):
@@ -139,7 +145,7 @@ class OneDMeas(OneDSweeper):
 
     def update_sweep(self, i):
         super().update_sweep(i=i)
-        self.get_sweep_instr().write_val(self.rt_x[i])
+        self.get_sweep_instr(0).write_val(self.rt_x[i])
 
     def update_sense(self, i, save_data=True):
         for j in range(self.numofsense):
@@ -171,8 +177,16 @@ class OneDMeas(OneDSweeper):
                 self.instr_list.instr_list[k].off()
 
     def init_func(self, fig=None, axes=None, save_data=True): 
-        super().init_func(fig=fig, axes=axes, save_data=save_data)
-        self.save_settings()
+        self.write_path()
+        util.check_dir(str(self.counter))
+        self.write_settings()
+        self.init_axes(fig=fig, axes=axes)
+        self.update_axes()
+        if save_data:
+            self.save_xdata()
+            self.save_settings()
+        self.rt_x = []
+        self.start_time = time.time()
         self.on()
 
     def grab_data_from_file(self, instr=None, fileName=None, path=None, counter=None, skip_rows=0):
@@ -190,23 +204,10 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
     name = 'TwoDMeas'
 
     def __init__(self, parent_dir, date, instrs, settings=None, name=None):
-        OneDMeas.__init__(parent_dir, date, date, instrs, settings=settings, name=name)
+        super().__init__(parent_dir, date, name=name)
 
+        self.set_instr_list(instrs = instrs, settings=settings)
 
-    def set_sweeper(self):
-        sense_keys, sweep_keys = [], []
-        numofsense, numofbias, numofsweep = 0, 0, 0
-        for k in self.instr_list.instr_list.keys():
-            if 'sweep' in k:
-                numofsweep += 1
-            if 'bias' in k:
-                numofbias += 1
-            if 'sense' in k:
-                numofsense += 1
-                sense_keys.append(k)
-        self.numofsense = numofsense
-        self.numofbias = numofbias
-        self.init_data_holders(sense_keys=sense_keys)
 
     def update_axes(self):
         i = 0
@@ -225,11 +226,10 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
                 ax.set_ylabel('{} [{}]'.format(self.get_sweep_keys()[1], self.instr_list.instr_list[self.get_sweep_keys()[1]].unit))
                 #ax.set_ylabel('Sense{}'.format(i//2))   
 
-
     def update_sweep(self, i):
         super().update_sweep(i)
-        self.get_sweep_instr(0).write_val(self.rt_x[i%len(self.cols)])
-        self.get_sweep_instr(1).write_val(self.rt_y[i//len(self.cols)])
+        self.get_sweep_instr(0).write_val(self.rt_x[i%self.cols])
+        self.get_sweep_instr(1).write_val(self.rt_y[i//self.cols])
 
     def update_sense(self, i, save_data=True):
         r, c = i//self.cols, i%self.cols
@@ -238,3 +238,16 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
         if save_data:
             self.save_zdata()
 
+    def init_func(self, fig=None, axes=None, save_data=True):
+        self.write_path()
+        util.check_dir(str(self.counter))
+        self.write_settings()
+        self.init_axes(fig=fig, axes=axes)
+        self.update_axes()
+        if save_data:
+            self.save_xdata()
+            self.save_ydata()
+            self.save_settings()
+        self.rt_x = []
+        self.start_time = time.time()
+        self.on()

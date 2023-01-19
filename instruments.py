@@ -1,5 +1,6 @@
 from spectroscopyMeas.base_module import base_instrument
 
+#Double check unit conversion in setting the maxim!!!
 class DMM(base_instrument):
 	def __init__(self, device, name='DMM', func='sense', mode='voltage', unit='V', avgs=None, maxim=None):
 		super().__init__(device, name=name, func=func, mode=mode, unit=unit)
@@ -7,7 +8,7 @@ class DMM(base_instrument):
 		self.set_maxim(maxim)
 
 	def set_unit(self, unit=None):
-		super().set_unit()
+		super().set_unit(unit=unit)
 		#factor=instr unit/device unit
 		#dmm device unit defaults are usually Amp and Volt
 		#Make sure to change it if your device has different default units
@@ -29,10 +30,10 @@ class DMM(base_instrument):
 
 	def set_maxim(self, maxim=None):
 		if maxim is None:
-			self.maxim = 1e-3
+			self.maxim = 1e-3/self.factor
 			return self.maxim
 		else:
-			self.maxim = maxim*self.factor
+			self.maxim = maxim
 
 	def get_settings(self):
 		return self.__dict__.copy()
@@ -64,7 +65,7 @@ class Keithley_DMM(DMM):
 
 	def set_maxim(self, maxim=None):
 		if maxim is None:
-			self.maxim = self.device.range()
+			self.maxim = self.device.range()/self.factor
 			return self.maxim
 		else:
 			self.maxim = maxim
@@ -91,7 +92,7 @@ class Keithley_Sense(DMM):
 		#"temperature": "TEMP",
 		#"frequency": "FREQ",
 		super().set_mode(mode)
-		self.device.sense_function(mode)
+		self.device.sense.function(mode)
 
 	def set_avgs(self, avgs=None):
 		if avgs is None:
@@ -103,7 +104,7 @@ class Keithley_Sense(DMM):
 
 	def set_maxim(self, maxim=None):
 		if maxim is None:
-			self.maxim = self.device.sense.range()
+			self.maxim = self.device.range()/self.factor
 			return self.maxim
 		else:
 			self.maxim = maxim
@@ -129,7 +130,7 @@ class source_unit(base_instrument):
 		self.set_maxim(maxim)
 
 	def set_unit(self, unit=None):
-		super().set_unit()
+		super().set_unit(unit=unit)
 		#factor=instr unit/device unit
 		#dmm device unit defaults are usually Amp and Volt
 		#Make sure to change it if your device has different default units
@@ -145,7 +146,7 @@ class source_unit(base_instrument):
 
 	def set_maxim(self, maxim=None):
 		if maxim is None:
-			self.maxim = 1e-3
+			self.maxim = 1e-3/self.factor
 			return self.maxim
 		else:
 			self.maxim = maxim
@@ -167,7 +168,7 @@ class Yokogawa(source_unit):
 		super().__init__(device, name=name, func=func, mode=mode, unit=unit, maxim=maxim)
 
 	def set_unit(self, unit=None):
-		super().set_unit()
+		super().set_unit(unit=unit)
 		#factor=instr unit/device unit
 		#dmm device unit defaults are usually Amp and Volt
 		#Make sure to change it if your device has different default units
@@ -190,27 +191,27 @@ class Yokogawa(source_unit):
 	def set_maxim(self, maxim=None):
 		if self.mode == 'VOLT':
 			if maxim is None:
-				return self.device.voltage_range()
+				return self.device.voltage_range()/self.factor
 			else:
 				self.maxim = maxim
 				self.device.voltage_range(self.maxim*self.factor)
 		elif self.mode == 'CURR':
 			if maxim is None:
-				return self.device.current_range()
+				return self.device.current_range()/self.factor
 			else:
-				self.maxim = maxim*self.factor
-				self.device.current_range(self.maxim)			
+				self.maxim = maxim
+				self.device.current_range(self.maxim*self.factor)			
 
 
 	def write_val(self, val=None):
 		if self.mode == 'VOLT':
 			if val is None:
-				return self.device.voltage()
+				return self.device.voltage()/self.factor
 			else:
 				self.device.voltage(val*self.factor)
 		if self.mode == 'CURR':
 			if val is None:
-				return self.device.current()
+				return self.device.current()/self.factor
 			else:
 				self.device.current(val*self.factor)
 
@@ -237,12 +238,12 @@ class Keithley_Source(source_unit):
 		#"temperature": "TEMP",
 		#"frequency": "FREQ",
 		super().set_mode(mode)
-		self.device.source_function(mode)
+		self.device.source.function(mode)
 
 
 	def set_maxim(self, maxim=None):
 		if maxim is None:
-			self.maxim = self.device.source.range()
+			self.maxim = self.device.source.range()/self.factor
 			return self.maxim
 		else:
 			self.maxim = maxim
@@ -251,12 +252,12 @@ class Keithley_Source(source_unit):
 	def write_val(self, val=None):
 		if self.mode == 'voltage':
 			if val is None:
-				return self.device.source.voltage()
+				return self.device.source.voltage()/self.factor
 			else:
 				self.device.source.voltage(val*self.factor)
 		if self.mode == 'current':
 			if val is None:
-				return self.device.source.current()
+				return self.device.source.current()/self.factor
 			else:
 				self.device.source.current(val*self.factor)
 

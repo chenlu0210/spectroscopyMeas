@@ -162,6 +162,9 @@ class base_measurement():
                 self.markers[id] = message
         else:
             self.markers[id] = message
+        log_info = [self.date, id, self.markers[id]]
+        self.update_log(log_info)
+
 
 
     def update_log(self, log_info):
@@ -257,7 +260,12 @@ class OneDSweeper(base_measurement):
         self.set_frames()
 
     def set_frames(self):
-        self.f = len(self.get_sweep_param()[0])
+        if len(self.get_sweep_param()) == 0:
+            self.f = 0
+        elif self.get_sweep_param()[0] is None:
+            self.f=0
+        else:
+            self.f = len(self.get_sweep_param()[0])
 
     def get_sweep_param(self):
         return tuple(self.sweep_param.values())
@@ -378,8 +386,6 @@ class OneDSweeper(base_measurement):
         self.end_time = time.time()
         self.update_id()
         self.mark()
-        log_info = [self.date, str(self.get_id()), self.markers[str(self.get_id())]]
-        self.update_log(log_info)
 
     def mark(self, id=None, message=None):
         sweep_param, = self.get_sweep_param()
@@ -429,8 +435,13 @@ class TwoDSweeper(OneDSweeper):
         self.set_frames()
 
     def set_frames(self):
-        self.f = len(self.get_sweep_param()[0])*len(self.get_sweep_param()[1])
-        self.cols = len(self.get_sweep_param()[0])
+        if len(self.get_sweep_param()) == 0:
+            self.f = 0
+        elif self.get_sweep_param()[0] is None:
+            self.f=0
+        else:
+            self.f = len(self.get_sweep_param()[0])*len(self.get_sweep_param()[1])
+            self.cols = len(self.get_sweep_param()[0])
 
 
     def init_data_holders(self, sense_keys=None):
