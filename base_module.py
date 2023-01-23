@@ -296,12 +296,14 @@ class OneDSweeper(base_measurement):
             # create a new data holder with the same length of sweep_param
 
     def init_axes(self, fig=None, axes=None):
-        if fig is None and axes is None:
+        if fig is None:
             self.fig = plt.figure()
+
+        if axes is None:
             self.axes = []
             for i in range(self.numofsense):
                 self.axes.append(self.fig.add_subplot(self.numofsense,1,i+1))
-        else:
+        if fig is not None and axes is not None:
             self.fig = fig
             self.axes = axes
 
@@ -348,23 +350,26 @@ class OneDSweeper(base_measurement):
         if save_data:
             self.save_zdata()
 
-    def update_plot(self, i, save_plot=True, figName='TracePlot'):
-        lines = []
-        for j in range(self.numofsense):
-            lines.append(self.axes[j].plot(self.rt_x, self.get_sense_data()[j][:i+1], label='{}'.format(i)))
-            #self.axes[j].legend()
+    def update_plot(self, i, save_plot=True, figName='TracePlot',n=10):
+        if i%n==0 and i//n>0:
+            plt.clf()
+            self.init_axes(fig=self.fig)
+            self.update_axes()
+            lines = []
+            for j in range(self.numofsense):
+                lines.append(self.axes[j].plot(self.rt_x, self.get_sense_data()[j][:i+1], 'k.-',label='{}'.format(i)))
+                #self.axes[j].legend()
 
         if i == self.f - 1:
             path = self.path + '\\' + str(self.counter)
             if save_plot:
                 self.fig.savefig(path+'\\{}.pdf'.format(figName))
 
-        return tuple(lines)
 
-    def update_data(self, i, save_data=True, save_plot=True):
+    def update_data(self, i, save_data=True, save_plot=True, n=10):
         self.update_sweep(i)
         self.update_sense(i, save_data=save_data)
-        lines = self.update_plot(i, save_plot=save_plot)
+        lines = self.update_plot(i, save_plot=save_plot, n=n)
         if i == self.f - 1:
             self.end_func()
         return lines
@@ -395,10 +400,10 @@ class OneDSweeper(base_measurement):
 
 
 
-    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True):
-        self.init_func(fig=fig, axes=axes, save_data=True)
+    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, n=10):
+        self.init_func(fig=fig, axes=axes, save_data=save_data)
         for i in range(self.f):
-            self.update_data(i, save_data=True, save_plot=True)
+            self.update_data(i, save_data=save_data, save_plot=save_plot, n=n)
             self.fig.canvas.draw()
             self.fig.canvas.flush_events()
             time.sleep(0.1)
@@ -461,13 +466,15 @@ class TwoDSweeper(OneDSweeper):
 
 
     def init_axes(self, fig=None, axes=None):
-        if fig is None and axes is None:
+        if fig is None:
             self.fig = plt.figure()
+
+        if axes is None:
             self.axes = []
             for i in range(self.numofsense):
                 self.axes.append(self.fig.add_subplot(self.numofsense,2,2*i+1))
                 self.axes.append(self.fig.add_subplot(self.numofsense,2,2*i+2))
-        else:
+        elif fig is not None:
             self.fig = fig
             self.axes = axes
 
@@ -519,16 +526,20 @@ class TwoDSweeper(OneDSweeper):
         if save_data:
             self.save_zdata()
 
-    def update_plot(self, i, save_plot=True, figName='Sweep'):
-        lines = []
-        cmaps = []
-        caxes = []
-        r, c = i//self.cols, i%self.cols
-        for j in range(self.numofsense):
-            lines.append(self.axes[2*j].plot(self.rt_x, self.get_sense_data()[j][r,:c+1], label='{}'.format(i)))
-            if (i+1)%self.cols == 0:
-                im = self.axes[2*j+1].pcolormesh(self.get_sweep_param()[0], self.rt_y, self.get_sense_data()[j][:r+1, :])
-                cmaps.append(im)
+    def update_plot(self, i, save_plot=True, figName='Sweep', n=10):
+        if i%n == 0 and i//n > 0:
+            plt.clf()
+            self.init_axes(fig=self.fig)
+            self.update_axes()
+            lines = []
+            cmaps = []
+            caxes = []
+            r, c = i//self.cols, i%self.cols
+            for j in range(self.numofsense):
+                lines.append(self.axes[2*j].plot(self.rt_x, self.get_sense_data()[j][r,:c+1], 'k.-',label='{}'.format(i)))
+                if (i+1)%self.cols == 0:
+                    im = self.axes[2*j+1].pcolormesh(self.get_sweep_param()[0], self.rt_y, self.get_sense_data()[j][:r+1, :])
+                    cmaps.append(im)
 
             #self.axes[j].legend()
 
@@ -539,7 +550,6 @@ class TwoDSweeper(OneDSweeper):
             if save_plot:
                 self.fig.savefig(path+'\\{}.pdf'.format(figName))
 
-        return tuple(lines+cmaps)
 
     def init_func(self, fig=None, axes=None, save_data=True): 
         self.write_path()
@@ -560,10 +570,10 @@ class TwoDSweeper(OneDSweeper):
         super(OneDSweeper, self).mark(id=id, message=message)
    
 
-    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True):
-        self.init_func(fig=fig, axes=axes, save_data=True)
+    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, n=10):
+        self.init_func(fig=fig, axes=axes, save_data=save_data)
         for i in range(self.f):
-            self.update_data(i, save_data=True, save_plot=True)
+            self.update_data(i, save_data=save_data, save_plot=save_plot, n=n)
             self.fig.canvas.draw()
             self.fig.canvas.flush_events()
             time.sleep(0.1)
