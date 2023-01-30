@@ -266,3 +266,28 @@ class Keithley_Source(source_unit):
 
 	def off(self):
 		self.device.output_enabled(0)
+
+
+class Counter(source_unit):
+
+	def __init__(self, instr, bias=0, name='counter'):
+		self.instr = instr
+		super().__init__(self.instr.device, name=self.instr.name, func=self.instr.func, mode=self.instr.mode, unit=self.instr.unit, maxim=self.instr.maxim)
+		self.bias = bias
+
+	def write_val(self, val=None):
+		self.instr.write_val(val=self.bias)
+
+	def set_mode(self, mode=None):
+		self.instr.set_mode(mode=mode)
+
+	def set_maxim(self, maxim=None):
+		self.instr.set_maxim(maxim=maxim)
+
+	def on(self):
+		self.instr.on()
+
+	def off(self):
+		self.instr.off()
+
+

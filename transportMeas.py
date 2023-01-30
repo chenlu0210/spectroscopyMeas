@@ -189,11 +189,11 @@ class OneDMeas(OneDSweeper):
         self.start_time = time.time()
         self.on()
 
-    def grab_data_from_file(self, instr=None, fileName=None, path=None, counter=None, skip_rows=0):
+    def grab_data_from_file(self, instr=None, fileName=None, date=None, path=None, counter=None, skip_rows=0):
         if fileName is not None:
-            self.grab_file(fileName, path=path, counter=counter, skip_rows=skip_rows)
+            return self.grab_file(fileName, date=date, path=path, counter=counter, skip_rows=skip_rows)
         elif instr is not None:
-            self.grab_file('{}.txt'.format(instr.func), path=path, counter=counter)
+            return self.grab_file('{}.txt'.format(instr.func), path=path, counter=counter)
         else:
             print('You have to specify what file to grab')
 
@@ -233,6 +233,8 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
 
     def update_sense(self, i, save_data=True):
         r, c = i//self.cols, i%self.cols
+        if c==0:
+            time.sleep(5)
         for j in range(self.numofsense):
             self.get_sense_data()[j][r][c] = self.sense(j)
         if save_data:

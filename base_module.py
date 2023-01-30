@@ -139,9 +139,11 @@ class base_measurement():
         self.markers = {str(self.counter): []}
 
 
-    def grab_file(self, fileName, path=None, counter=None, skip_rows=0):
+    def grab_file(self, fileName, date=None,path=None, counter=None, skip_rows=0):
         if not path:
             path = self.path
+        elif not date:
+            path = self.parent_dir + '\\' + self.date
         if not counter:
             counter = self.counter-1
         path = path + '\\' + str(counter)
@@ -160,10 +162,12 @@ class base_measurement():
                 self.log_from_markers()
             else:
                 self.markers[id] = message
+                log_info = [self.date, id, self.markers[id]]
+                self.update_log(log_info)
         else:
             self.markers[id] = message
-        log_info = [self.date, id, self.markers[id]]
-        self.update_log(log_info)
+            log_info = [self.date, id, self.markers[id]]
+            self.update_log(log_info)
 
 
 
@@ -361,15 +365,23 @@ class OneDSweeper(base_measurement):
                 #self.axes[j].legend()
 
         if i == self.f - 1:
+            plt.clf()
+            self.init_axes(fig=self.fig)
+            self.update_axes()
+            lines = []
+            for j in range(self.numofsense):
+                lines.append(self.axes[j].plot(self.rt_x, self.get_sense_data()[j][:i+1], 'k.-',label='{}'.format(i)))            
             path = self.path + '\\' + str(self.counter)
             if save_plot:
                 self.fig.savefig(path+'\\{}.pdf'.format(figName))
 
 
-    def update_data(self, i, save_data=True, save_plot=True, n=10):
+    def update_data(self, i, save_data=True, save_plot=True, n=10, opt_func=None, opt_param=None):
         self.update_sweep(i)
         self.update_sense(i, save_data=save_data)
         lines = self.update_plot(i, save_plot=save_plot, n=n)
+        if opt_func is not None and opt_param is not None:
+            opt_func(*opt_param)
         if i == self.f - 1:
             self.end_func()
         return lines
@@ -400,10 +412,10 @@ class OneDSweeper(base_measurement):
 
 
 
-    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, n=10):
+    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, n=1, opt_func=None, opt_param=None):
         self.init_func(fig=fig, axes=axes, save_data=save_data)
         for i in range(self.f):
-            self.update_data(i, save_data=save_data, save_plot=save_plot, n=n)
+            self.update_data(i, save_data=save_data, save_plot=save_plot, n=n, opt_func=opt_func, opt_param=opt_param)
             self.fig.canvas.draw()
             self.fig.canvas.flush_events()
             time.sleep(0.1)
@@ -526,7 +538,7 @@ class TwoDSweeper(OneDSweeper):
         if save_data:
             self.save_zdata()
 
-    def update_plot(self, i, save_plot=True, figName='Sweep', n=10):
+    def update_plot(self, i, save_plot=True, figName='Sweep', n=1):
         if i%n == 0 and i//n > 0:
             plt.clf()
             self.init_axes(fig=self.fig)
@@ -539,13 +551,24 @@ class TwoDSweeper(OneDSweeper):
                 lines.append(self.axes[2*j].plot(self.rt_x, self.get_sense_data()[j][r,:c+1], 'k.-',label='{}'.format(i)))
                 if (i+1)%self.cols == 0:
                     im = self.axes[2*j+1].pcolormesh(self.get_sweep_param()[0], self.rt_y, self.get_sense_data()[j][:r+1, :])
-                    cmaps.append(im)
+                    self.fig.colorbar(im, ax = self.axes[2*j+1])
 
             #self.axes[j].legend()
 
         if i == self.f - 1:
-            for k in range(self.numofsense):
-                self.fig.colorbar(cmaps[k], ax = self.axes[2*k+1])
+            plt.clf()
+            self.init_axes(fig=self.fig)
+            self.update_axes()
+            lines = []
+            cmaps = []
+            caxes = []
+            r, c = i//self.cols, i%self.cols
+            for j in range(self.numofsense):
+                lines.append(self.axes[2*j].plot(self.rt_x, self.get_sense_data()[j][r,:c+1], 'k.-',label='{}'.format(i)))
+                if (i+1)%self.cols == 0:
+                    im = self.axes[2*j+1].pcolormesh(self.get_sweep_param()[0], self.rt_y, self.get_sense_data()[j][:r+1, :])
+                    self.fig.colorbar(im, ax = self.axes[2*j+1])
+
             path = self.path + '\\' + str(self.counter)
             if save_plot:
                 self.fig.savefig(path+'\\{}.pdf'.format(figName))
@@ -570,10 +593,10 @@ class TwoDSweeper(OneDSweeper):
         super(OneDSweeper, self).mark(id=id, message=message)
    
 
-    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, n=10):
+    def live_plot(self, fig=None, axes=None, save_data=True, save_plot=True, n=1, opt_func=None, opt_param=None):
         self.init_func(fig=fig, axes=axes, save_data=save_data)
         for i in range(self.f):
-            self.update_data(i, save_data=save_data, save_plot=save_plot, n=n)
+            self.update_data(i, save_data=save_data, save_plot=save_plot, n=n, opt_func=opt_func, opt_param=opt_param)
             self.fig.canvas.draw()
             self.fig.canvas.flush_events()
             time.sleep(0.1)

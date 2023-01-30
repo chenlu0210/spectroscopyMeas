@@ -154,7 +154,27 @@ def update_dict(d, k, v):
     else:
         d[k] = v
 
-## Grab data in files
-#def grab_file(dir, file):
+## Basic data analysis helper functions
+def slice(x_data, x_range):
+    f1, f2 = x_range
+    fid = np.logical_and(x_data>=f1, x_data<=f2)
+    return fid
 
-        
+
+def zoom_in(x_data, y_data, x_range):
+# x_data, y_data are both numpy arrays
+# x_range is a tuple that sets the zoom boundary
+    if x_data is None or y_data is None:
+        print('your data cannot be None')
+    else:
+        fid = slice(x_data, x_range)
+        if len(y_data.shape) == 1:
+            try:
+                return x_data[fid], y_data[fid]
+            except:
+                print('Sizes of x and y data do not match')
+        else:
+            try:
+                return x_data[fid], y_data[:,fid]
+            except:
+                print('Sizes of x and y data do not match')
