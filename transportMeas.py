@@ -146,6 +146,7 @@ class OneDMeas(OneDSweeper):
     def update_sweep(self, i):
         super().update_sweep(i=i)
         self.get_sweep_instr(0).write_val(self.rt_x[i])
+        self.rt_x[i] = self.get_sweep_instr(0).write_val()
 
     def update_sense(self, i, save_data=True):
         for j in range(self.numofsense):
@@ -183,7 +184,6 @@ class OneDMeas(OneDSweeper):
         self.init_axes(fig=fig, axes=axes)
         self.update_axes()
         if save_data:
-            self.save_xdata()
             self.save_settings()
         self.rt_x = []
         self.start_time = time.time()
@@ -230,6 +230,8 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
         super().update_sweep(i)
         self.get_sweep_instr(0).write_val(self.rt_x[i%self.cols])
         self.get_sweep_instr(1).write_val(self.rt_y[i//self.cols])
+        self.rt_x[i%self.cols] = self.get_sweep_instr(0).write_val()
+        self.rt_y[i//self.cols] = self.get_sweep_instr(1).write_val()
 
     def update_sense(self, i, save_data=True):
         r, c = i//self.cols, i%self.cols
@@ -247,9 +249,8 @@ class TwoDMeas(TwoDSweeper, OneDMeas):
         self.init_axes(fig=fig, axes=axes)
         self.update_axes()
         if save_data:
-            self.save_xdata()
-            self.save_ydata()
             self.save_settings()
         self.rt_x = []
+        self.rt_y = []
         self.start_time = time.time()
         self.on()

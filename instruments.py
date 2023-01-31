@@ -267,6 +267,116 @@ class Keithley_Source(source_unit):
 	def off(self):
 		self.device.output_enabled(0)
 
+class ZI_source(source_unit):
+
+	def __init__(self, device, name='DEV2062', func='bias', mode='voltage', unit='V', avgs=None, maxim=None):
+		try:
+			device.auxouts.auxouts0.outputselect(-1)
+			device.auxouts.auxouts0.scale(1)
+		except:
+			print("Problem in setting up the device!")
+		super().__init__(device, name=name, func=func, mode=mode, unit=unit, maxim=maxim)
+
+
+	def set_mode(self, mode=None):
+		#"ac current": "CURR:AC",
+		#"dc current": "CURR:DC",
+		#"ac voltage": "VOLT:AC",
+		#"dc voltage": "VOLT:DC",
+		#"2w resistance": "RES",
+		#"4w resistance": "FRES",
+		#"temperature": "TEMP",
+		#"frequency": "FREQ",
+		super().set_mode(mode)
+		if self.mode != 'voltage':
+			print('ZI can only source output!')
+
+
+	def set_maxim(self, maxim=None):
+		if maxim is None:
+			self.maxim = self.device.auxouts.auxouts0.limitupper()/self.factor
+			return self.maxim
+		else:
+			self.maxim = maxim
+			self.device.auxouts.auxouts0.limitupper(self.maxim*self.factor)
+			self.device.auxouts.auxouts0.limitlower(-self.maxim*self.factor)
+
+	def write_val(self, val=None):
+		if self.mode == 'voltage':
+			if val is None:
+				return self.device.auxouts.auxouts0.value()/self.factor
+			else:
+				self.device.auxouts.auxouts0.offset(val*self.factor)
+		else:
+			print('ZI can only source output!')
+
+	def on(self):
+		pass
+
+	def off(self):
+		pass
+
+class Combined_source(source_unit):
+	def __init__(self, instr1, instr2, name='Combined_source', func='bias', mode='voltage', unit='V', avgs=None, maxim=None, dec=1):
+		self.coarse_instr = instr1
+		self.fine_instr = instr2
+		self.name = name
+		self.func = func
+		self.mode = mode
+		self.unit = unit
+		self.dec = dec
+		#dec given in the same unit of self.factor
+		self.set_func(func=func)
+		self.set_unit(unit=unit)
+		self.set_mode(mode=mode)
+		self.off()
+
+	def set_unit(self, unit=None):
+		self.coarse_instr.set_unit(unit=unit)
+		self.fine_instr.set_unit(unit=unit)
+		if self.coarse_instr.factor != self.fine_instr.factor:
+			print('Your coarse instr and fine instr should have the same unit!')
+
+	def set_mode(self, mode=None):
+		#"ac current": "CURR:AC",
+		#"dc current": "CURR:DC",
+		#"ac voltage": "VOLT:AC",
+		#"dc voltage": "VOLT:DC",
+		#"2w resistance": "RES",
+		#"4w resistance": "FRES",
+		#"temperature": "TEMP",
+		#"frequency": "FREQ",
+		self.coarse_instr.set_mode(mode=mode)
+		self.fine_instr.set_mode(mode=mode)
+
+
+	def set_maxim(self, maxim=None):
+		if maxim is None:
+			self.maxim = self.coarse_instr.maxim()
+			return self.maxim
+		else:
+			self.maxim = maxim
+			self.coarse_instr.set_maxim(self.maxim)
+			self.fine_instr.set_maxim(self.dec)
+
+
+	def write_val(self, val=None):
+		if self.mode == 'voltage':
+			if val is None:
+				return self.coarse_instr.write_val()+self.fine_instr.write_val()
+			else:
+				self.coarse_instr.write_val(val//self.dec*self.dec)
+				self.fine_instr.write_val(val%self.dec)
+		else:
+			print('ZI can only source output!')
+
+	def on(self):
+		self.coarse_instr.on()
+		self.fine_instr.on()
+
+	def off(self):
+		self.coarse_instr.off()
+		self.fine_instr.off()
 
 class Counter(source_unit):
 

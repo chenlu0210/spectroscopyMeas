@@ -331,7 +331,7 @@ class OneDSweeper(base_measurement):
         if not counter:
             counter = self.counter
         path = path + '\\' + str(counter) 
-        np.savetxt(path+"\\{}.txt".format(sweep_key), sweep_param)
+        np.savetxt(path+"\\{}.txt".format(sweep_key), self.rt_x)
 
     def save_zdata(self, path=None, counter=None):
         if not path:
@@ -381,9 +381,9 @@ class OneDSweeper(base_measurement):
         self.update_sense(i, save_data=save_data)
         lines = self.update_plot(i, save_plot=save_plot, n=n)
         if opt_func is not None and opt_param is not None:
-            opt_func(*opt_param)
+            opt_func(i, *opt_param)
         if i == self.f - 1:
-            self.end_func()
+            self.end_func(save_data=save_data)
         return lines
 
 
@@ -393,16 +393,16 @@ class OneDSweeper(base_measurement):
         self.init_axes(fig=fig, axes=axes)
         self.update_axes()
         self.set_frames()
-        if save_data:
-            self.save_xdata()
         self.rt_x = []
         self.init_data_holders()
         self.start_time = time.time()
 
-    def end_func(self):
+    def end_func(self, save_data=True):
         self.end_time = time.time()
         self.update_id()
         self.mark()
+        if save_data:
+            self.save_xdata()
 
     def mark(self, id=None, message=None):
         sweep_param, = self.get_sweep_param()
@@ -514,7 +514,7 @@ class TwoDSweeper(OneDSweeper):
         if not counter:
             counter = self.counter
         path = path + '\\' + str(counter) 
-        np.savetxt(path+"\\{}.txt".format(self.get_sweep_keys()[0]), self.get_sweep_param()[0])
+        np.savetxt(path+"\\{}.txt".format(self.get_sweep_keys()[0]), self.rt_x)
 
 
     def save_ydata(self, fileName='sweep_param2', path=None, counter=None):
@@ -523,7 +523,7 @@ class TwoDSweeper(OneDSweeper):
         if not counter:
             counter = self.counter
         path = path + '\\' + str(counter) 
-        np.savetxt(path+"\\{}.txt".format(self.get_sweep_keys()[1]), self.get_sweep_param()[1])
+        np.savetxt(path+"\\{}.txt".format(self.get_sweep_keys()[1]), self.rt_y)
 
 
 
@@ -579,12 +579,18 @@ class TwoDSweeper(OneDSweeper):
         util.check_dir(str(self.counter))
         self.init_axes(fig=fig, axes=axes)
         self.update_axes()
+        self.rt_x = []
+        self.rt_y = []
+        self.init_data_holders()
+        self.start_time = time.time()
+
+    def end_func(self, save_data=True):
+        self.end_time = time.time()
+        self.update_id()
+        self.mark()
         if save_data:
             self.save_xdata()
             self.save_ydata()
-        self.rt_x = []
-        self.init_data_holders()
-        self.start_time = time.time()
 
     def mark(self, id=None, message=None):
         sweep_param1, sweep_param2 = self.get_sweep_param()
