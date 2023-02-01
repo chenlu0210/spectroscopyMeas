@@ -21,7 +21,6 @@ class base_instrument():
         self.set_func(func=func)
         self.set_mode(mode=mode)
         self.set_unit(unit=unit)
-        self.off()
 
     def set_func(self, func=None):
         # func can be "Sense1/2", "Sweep1/2", "Bias1,2,3,...."
@@ -398,11 +397,12 @@ class OneDSweeper(base_measurement):
         self.start_time = time.time()
 
     def end_func(self, save_data=True):
+        if save_data:
+            self.save_xdata()
         self.end_time = time.time()
         self.update_id()
         self.mark()
-        if save_data:
-            self.save_xdata()
+
 
     def mark(self, id=None, message=None):
         sweep_param, = self.get_sweep_param()
@@ -585,12 +585,13 @@ class TwoDSweeper(OneDSweeper):
         self.start_time = time.time()
 
     def end_func(self, save_data=True):
+        if save_data:
+            self.save_xdata()
+            self.save_ydata()        
         self.end_time = time.time()
         self.update_id()
         self.mark()
-        if save_data:
-            self.save_xdata()
-            self.save_ydata()
+
 
     def mark(self, id=None, message=None):
         sweep_param1, sweep_param2 = self.get_sweep_param()

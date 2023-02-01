@@ -329,7 +329,7 @@ class Combined_source(source_unit):
 		self.set_func(func=func)
 		self.set_unit(unit=unit)
 		self.set_mode(mode=mode)
-		self.off()
+
 
 	def set_unit(self, unit=None):
 		self.coarse_instr.set_unit(unit=unit)
@@ -348,6 +348,10 @@ class Combined_source(source_unit):
 		#"frequency": "FREQ",
 		self.coarse_instr.set_mode(mode=mode)
 		self.fine_instr.set_mode(mode=mode)
+
+	def set_dec(self, dec=1):
+		self.dec = dec
+		self.fine_instr.set_maxim(self.dec)
 
 
 	def set_maxim(self, maxim=None):
@@ -382,11 +386,14 @@ class Counter(source_unit):
 
 	def __init__(self, instr, bias=0, name='counter'):
 		self.instr = instr
-		super().__init__(self.instr.device, name=self.instr.name, func=self.instr.func, mode=self.instr.mode, unit=self.instr.unit, maxim=self.instr.maxim)
+		super().__init__(self.instr.device, name=self.instr.name, func=self.instr.func, mode=self.instr.mode, unit='pts', maxim=self.instr.maxim)
 		self.bias = bias
 
 	def write_val(self, val=None):
-		self.instr.write_val(val=self.bias)
+		if val is None:
+			return self.instr.write_val()
+		else:
+			self.instr.write_val(val=self.bias)
 
 	def set_mode(self, mode=None):
 		self.instr.set_mode(mode=mode)
@@ -399,5 +406,3 @@ class Counter(source_unit):
 
 	def off(self):
 		self.instr.off()
-
-

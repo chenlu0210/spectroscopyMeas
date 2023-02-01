@@ -63,7 +63,7 @@ class OneDMeas(OneDSweeper):
             instr.set_func(func=func)
             self.instr_list.add_instr(instr)
             self.update_settings(instr, val=val)
-            	
+                
 
     def set_settings(self, settings=None):
         if settings is None:
@@ -92,7 +92,7 @@ class OneDMeas(OneDSweeper):
                     self.settings[instr.func] = val
             else:
                 print('This instrument is not in your instr_list. Make sure to add it first.')
-       	if mode == 'delete':
+        if mode == 'delete':
             if instr.func in self.settings.keys():
                 self.settings.pop(instr.func)
             print('instr deleted from the settings')
