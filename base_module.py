@@ -345,7 +345,7 @@ class OneDSweeper(base_measurement):
             i += 1
 
     def update_sweep(self, i):
-        self.rt_x = self.get_sweep_param()[0][:i+1]
+        self.rt_x.append(self.get_sweep_param()[0][i])
 
     def update_sense(self, i, save_data=True):
         for j in range(self.numofsense):
@@ -528,8 +528,10 @@ class TwoDSweeper(OneDSweeper):
 
 
     def update_sweep(self, i):
-        self.rt_x = self.get_sweep_param()[0][:i%self.cols+1]
-        self.rt_y = self.get_sweep_param()[1][:i//self.cols+1]
+        if i%self.cols == 0:
+            self.rt_x = []
+            self.rt_y.append(self.get_sweep_param()[1][i//self.cols])
+        self.rt_x.append(self.get_sweep_param()[0][i%self.cols])
 
     def update_sense(self, i, save_data=True):
         r, c = i//self.cols, i%self.cols

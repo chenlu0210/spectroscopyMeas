@@ -1,4 +1,5 @@
 from spectroscopyMeas.base_module import base_instrument
+import time
 
 #Double check unit conversion in setting the maxim!!!
 class DMM(base_instrument):
@@ -269,10 +270,11 @@ class Keithley_Source(source_unit):
 
 class ZI_source(source_unit):
 
-	def __init__(self, device, name='DEV2062', func='bias', mode='voltage', unit='V', avgs=None, maxim=None):
+	def __init__(self, device, channel=0, name='DEV2062', func='bias', mode='voltage', unit='V', avgs=None, maxim=None):
+		self.channel = channel
 		try:
-			device.auxouts.auxouts0.outputselect(-1)
-			device.auxouts.auxouts0.scale(1)
+			device.auxouts[self.channel]outputselect(-1)
+			device.auxouts[self.channel].scale(1)
 		except:
 			print("Problem in setting up the device!")
 		super().__init__(device, name=name, func=func, mode=mode, unit=unit, maxim=maxim)
@@ -294,19 +296,19 @@ class ZI_source(source_unit):
 
 	def set_maxim(self, maxim=None):
 		if maxim is None:
-			self.maxim = self.device.auxouts.auxouts0.limitupper()/self.factor
+			self.maxim = self.device.auxouts[self.channel].limitupper()/self.factor
 			return self.maxim
 		else:
 			self.maxim = maxim
-			self.device.auxouts.auxouts0.limitupper(self.maxim*self.factor)
-			self.device.auxouts.auxouts0.limitlower(-self.maxim*self.factor)
+			self.device.auxouts[self.channel].limitupper(self.maxim*self.factor)
+			self.device.auxouts[self.channel].limitlower(-self.maxim*self.factor)
 
 	def write_val(self, val=None):
 		if self.mode == 'voltage':
 			if val is None:
-				return self.device.auxouts.auxouts0.value()/self.factor
+				return self.device.auxouts[self.channel].value()/self.factor
 			else:
-				self.device.auxouts.auxouts0.offset(val*self.factor)
+				self.device.auxouts[self.channel].offset(val*self.factor)
 		else:
 			print('ZI can only source output!')
 
@@ -326,12 +328,14 @@ class Combined_source(source_unit):
 		self.unit = unit
 		self.dec = dec
 		#dec given in the same unit of self.factor
+		self.set_dec(dec=dec)
 		self.set_func(func=func)
 		self.set_unit(unit=unit)
 		self.set_mode(mode=mode)
 
 
 	def set_unit(self, unit=None):
+		super().set_unit(unit=unit)
 		self.coarse_instr.set_unit(unit=unit)
 		self.fine_instr.set_unit(unit=unit)
 		if self.coarse_instr.factor != self.fine_instr.factor:
@@ -346,8 +350,10 @@ class Combined_source(source_unit):
 		#"4w resistance": "FRES",
 		#"temperature": "TEMP",
 		#"frequency": "FREQ",
+		super().set_mode(mode=mode)
 		self.coarse_instr.set_mode(mode=mode)
-		self.fine_instr.set_mode(mode=mode)
+		if self.fine_instr.name == 'yokogawa' and mode=='voltage':
+			self.fine_instr.set_mode(mode='VOLT')
 
 	def set_dec(self, dec=1):
 		self.dec = dec
@@ -367,10 +373,11 @@ class Combined_source(source_unit):
 	def write_val(self, val=None):
 		if self.mode == 'voltage':
 			if val is None:
-				return self.coarse_instr.write_val()+self.fine_instr.write_val()
+				return self.coarse_instr.write_val()*self.coarse_instr.factor/self.factor + self.fine_instr.write_val()*self.fine_instr.factor/self.factor
 			else:
-				self.coarse_instr.write_val(val//self.dec*self.dec)
-				self.fine_instr.write_val(val%self.dec)
+				self.coarse_instr.write_val((val*self.factor/self.coarse_instr.factor)//self.dec*self.dec)
+				self.fine_instr.write_val((val*self.factor/self.fine_instr.factor)%self.dec)
+				time.sleep(0.5)
 		else:
 			print('ZI can only source output!')
 
@@ -388,11 +395,13 @@ class Counter(source_unit):
 		self.instr = instr
 		super().__init__(self.instr.device, name=self.instr.name, func=self.instr.func, mode=self.instr.mode, unit='pts', maxim=self.instr.maxim)
 		self.bias = bias
+		self.count = 0
 
 	def write_val(self, val=None):
 		if val is None:
-			return self.instr.write_val()
+			return self.count
 		else:
+			self.count = val
 			self.instr.write_val(val=self.bias)
 
 	def set_mode(self, mode=None):
