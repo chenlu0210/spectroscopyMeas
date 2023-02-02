@@ -273,7 +273,7 @@ class ZI_source(source_unit):
 	def __init__(self, device, channel=0, name='DEV2062', func='bias', mode='voltage', unit='V', avgs=None, maxim=None):
 		self.channel = channel
 		try:
-			device.auxouts[self.channel]outputselect(-1)
+			device.auxouts[self.channel].outputselect(-1)
 			device.auxouts[self.channel].scale(1)
 		except:
 			print("Problem in setting up the device!")
