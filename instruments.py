@@ -309,6 +309,7 @@ class ZI_source(source_unit):
 				return self.device.auxouts[self.channel].value()/self.factor
 			else:
 				self.device.auxouts[self.channel].offset(val*self.factor)
+				time.sleep(0.5)
 		else:
 			print('ZI can only source output!')
 
@@ -377,7 +378,6 @@ class Combined_source(source_unit):
 			else:
 				self.coarse_instr.write_val((val*self.factor/self.coarse_instr.factor)//self.dec*self.dec)
 				self.fine_instr.write_val((val*self.factor/self.fine_instr.factor)%self.dec)
-				time.sleep(0.5)
 		else:
 			print('ZI can only source output!')
 
