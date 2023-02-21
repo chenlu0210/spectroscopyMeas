@@ -146,10 +146,13 @@ class base_measurement():
         if not counter:
             counter = self.counter-1
         path = path + '\\' + str(counter)
-        if fileName.split('.')[1] == 'csv':
-            return np.loadtxt(open(os.path.join(path, fileName), "rb"), delimiter=",", skiprows=skip_rows)
-        elif fileName.split('.')[1] == 'txt':
-            return np.loadtxt(os.path.join(path, fileName), skiprows=skip_rows)
+        if os.path.exists(path+'\\'+fileName):
+            if fileName.split('.')[1] == 'csv':
+                return np.loadtxt(open(os.path.join(path, fileName), "rb"), delimiter=",", skiprows=skip_rows)
+            elif fileName.split('.')[1] == 'txt':
+                return np.loadtxt(os.path.join(path, fileName), skiprows=skip_rows)
+        else:
+            raise Exception('File does not exist!')
 
 
     def mark(self, id=None, message=''):
@@ -345,7 +348,7 @@ class OneDSweeper(base_measurement):
             i += 1
 
     def update_sweep(self, i):
-        self.rt_x.append(self.get_sweep_param()[0][i])
+        self.rt_x = self.get_sweep_param()[0][:i+1]
 
     def update_sense(self, i, save_data=True):
         for j in range(self.numofsense):
@@ -354,28 +357,29 @@ class OneDSweeper(base_measurement):
             self.save_zdata()
 
     def update_plot(self, i, save_plot=True, figName='TracePlot',n=10):
-        if i%n==0 and i//n>0:
-            plt.clf()
-            self.init_axes(fig=self.fig)
-            self.update_axes()
-            lines = []
-            for j in range(self.numofsense):
-                lines.append(self.axes[j].plot(self.rt_x, self.get_sense_data()[j][:i+1], 'k.-',label='{}'.format(i)))
-                #self.axes[j].legend()
-
         if i == self.f - 1:
             plt.clf()
             self.init_axes(fig=self.fig)
             self.update_axes()
             lines = []
-            for j in range(self.numofsense):
-                lines.append(self.axes[j].plot(self.rt_x, self.get_sense_data()[j][:i+1], 'k.-',label='{}'.format(i)))            
+            for j in range(len(self.axes)):
+                lines.append(self.axes[j].plot(self.rt_x, self.get_sense_data()[j][:], 'k.-',label='{}'.format(i)))            
             path = self.path + '\\' + str(self.counter)
             if save_plot:
                 self.fig.savefig(path+'\\{}.pdf'.format(figName))
+        if i%n==0 and i//n>0:
+            plt.clf()
+            self.init_axes(fig=self.fig)
+            self.update_axes()
+            lines = []
+            for j in range(len(self.axes)):
+                lines.append(self.axes[j].plot(self.rt_x, self.get_sense_data()[j][:i+1], 'k.-',label='{}'.format(i)))
+                #self.axes[j].legend()
 
 
-    def update_data(self, i, save_data=True, save_plot=True, n=10, opt_func=None, opt_param=None):
+
+
+    def update_data(self, i, save_data=True, save_plot=True, n=1, opt_func=None, opt_param=None):
         self.update_sweep(i)
         self.update_sense(i, save_data=save_data)
         lines = self.update_plot(i, save_plot=save_plot, n=n)
@@ -407,7 +411,7 @@ class OneDSweeper(base_measurement):
     def mark(self, id=None, message=None):
         sweep_param, = self.get_sweep_param()
         if message is None:
-            message = '{:2f}to{:2f}in{}steps'.format(np.min(sweep_param),np.max(sweep_param),self.f)
+            message = '{:2f}to{:2f}in{}steps'.format(sweep_param[0],sweep_param[-1],len(sweep_param))
         super().mark(id=id, message=message)
 
 
@@ -528,10 +532,8 @@ class TwoDSweeper(OneDSweeper):
 
 
     def update_sweep(self, i):
-        if i%self.cols == 0:
-            self.rt_x = []
-            self.rt_y.append(self.get_sweep_param()[1][i//self.cols])
-        self.rt_x.append(self.get_sweep_param()[0][i%self.cols])
+        self.rt_x = self.get_sweep_param()[0][:i%self.cols+1]
+        self.rt_y = self.get_sweep_param()[1][:i//self.cols+1]
 
     def update_sense(self, i, save_data=True):
         r, c = i//self.cols, i%self.cols
@@ -541,22 +543,6 @@ class TwoDSweeper(OneDSweeper):
             self.save_zdata()
 
     def update_plot(self, i, save_plot=True, figName='Sweep', n=1):
-        if i%n == 0 and i//n > 0:
-            plt.clf()
-            self.init_axes(fig=self.fig)
-            self.update_axes()
-            lines = []
-            cmaps = []
-            caxes = []
-            r, c = i//self.cols, i%self.cols
-            for j in range(self.numofsense):
-                lines.append(self.axes[2*j].plot(self.rt_x, self.get_sense_data()[j][r,:c+1], 'k.-',label='{}'.format(i)))
-                if (i+1)%self.cols == 0:
-                    im = self.axes[2*j+1].pcolormesh(self.get_sweep_param()[0], self.rt_y, self.get_sense_data()[j][:r+1, :])
-                    self.fig.colorbar(im, ax = self.axes[2*j+1])
-
-            #self.axes[j].legend()
-
         if i == self.f - 1:
             plt.clf()
             self.init_axes(fig=self.fig)
@@ -574,6 +560,21 @@ class TwoDSweeper(OneDSweeper):
             path = self.path + '\\' + str(self.counter)
             if save_plot:
                 self.fig.savefig(path+'\\{}.pdf'.format(figName))
+        if i%n == 0 and i//n > 0:
+            plt.clf()
+            self.init_axes(fig=self.fig)
+            self.update_axes()
+            lines = []
+            cmaps = []
+            caxes = []
+            r, c = i//self.cols, i%self.cols
+            for j in range(self.numofsense):
+                lines.append(self.axes[2*j].plot(self.rt_x, self.get_sense_data()[j][r,:c+1], 'k.-',label='{}'.format(i)))
+                if (i+1)%self.cols == 0:
+                    im = self.axes[2*j+1].pcolormesh(self.get_sweep_param()[0], self.rt_y, self.get_sense_data()[j][:r+1, :])
+                    self.fig.colorbar(im, ax = self.axes[2*j+1])
+
+            #self.axes[j].legend()
 
 
     def init_func(self, fig=None, axes=None, save_data=True): 
@@ -598,7 +599,7 @@ class TwoDSweeper(OneDSweeper):
     def mark(self, id=None, message=None):
         sweep_param1, sweep_param2 = self.get_sweep_param()
         if message is None:
-            message = '{:2f}to{:2f}in{}steps_{:2f}to{:2f}in{}steps'.format(np.min(sweep_param1),np.max(sweep_param1),self.cols,np.min(sweep_param2),np.max(sweep_param2),len(sweep_param2))
+            message = '{:2f}to{:2f}in{}steps_{:2f}to{:2f}in{}steps'.format(sweep_param1[0],sweep_param1[-1],self.cols,sweep_param2[0],sweep_param2[-1],len(sweep_param2))
         super(OneDSweeper, self).mark(id=id, message=message)
    
 
